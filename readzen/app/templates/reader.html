@@ -45,6 +45,7 @@
             </button>
         </div>
         <button class="btn" id="ruler-toggle" title="Guide de lecture">📏</button>
+        <button class="btn" id="summary-toggle" title="Résumé AI">✨ Résumé</button>
         <button class="btn" id="fullscreen-btn" title="Mode Zen (Plein Écran)">⛶</button>
         <span id="reading-time"
             style="margin-left: auto; font-size: 0.8rem; color: var(--color-text-muted); font-weight: 500;"></span>
@@ -55,6 +56,11 @@
     </div>
 
     <div id="reader-container" style="position: relative;">
+        <div id="summary-panel" class="summary-card" style="display: none;">
+            <h3>Résumé AI</h3>
+            <div id="summary-content" class="summary-body">Chargement...</div>
+        </div>
+
         <div id="page-content" class="page-frame">
             <div class="loading-spinner"></div>
             Chargement du document...
@@ -166,6 +172,41 @@
                     if (document.exitFullscreen) {
                         document.exitFullscreen();
                     }
+                }
+            });
+        }
+
+        // Summary Toggle
+        const summaryToggle = document.getElementById('summary-toggle');
+        const summaryPanel = document.getElementById('summary-panel');
+        if (summaryToggle && summaryPanel) {
+            summaryToggle.addEventListener('click', async () => {
+                if (summaryPanel.style.display === 'none') {
+                    summaryPanel.style.display = 'block';
+                    const body = document.getElementById('summary-content');
+                    body.innerText = "Chargement..."; // Reset content on show
+
+                    try {
+                        const res = await fetch(`/api/documents/${DOC_ID}/summary`);
+                        const data = await res.json();
+                        const summaryText = data.summary;
+
+                        // Render content
+                        if (summaryText) {
+                            if (typeof marked !== 'undefined') {
+                                body.innerHTML = marked.parse(summaryText);
+                            } else {
+                                body.innerText = summaryText;
+                            }
+                        } else {
+                            body.innerText = "Résumé non disponible (Clé API manquante ou erreur).";
+                        }
+                    } catch (e) {
+                        console.error("Error fetching summary:", e);
+                        body.innerText = "Erreur lors du chargement du résumé.";
+                    }
+                } else {
+                    summaryPanel.style.display = 'none';
                 }
             });
         }

@@ -10,4 +10,7 @@ class Settings:
     # Storage
     UPLOAD_DIR: str = os.path.join(os.getcwd(), "uploads")
 
+    # AI
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+
 settings = Settings()

@@ -230,35 +230,164 @@ class AccessibilityManager {
         const container = document.getElementById('page-content');
         if (!container) return;
 
-        // Update cleanText if new content is provided (e.g. pagination)
+        // Update cleanText if new content is provided
         if (newText) {
             this.cleanText = newText;
-        }
-        // Fallback: If no cache exists, try to grab from DOM
-        else if (!this.cleanText) {
+        } else if (!this.cleanText) {
             this.cleanText = container.innerText;
         }
 
-        let html = '';
+        // 1. Render Markdown to HTML using marked.js
+        // Configure marked to handle breaks if needed
+        if (typeof marked !== 'undefined') {
+            container.innerHTML = marked.parse(this.cleanText);
+        } else {
+            // Fallback if marked failed to load
+            container.innerText = this.cleanText;
+        }
 
-        // Process paragraph by paragraph to preserve structure if any
-        // Assuming plain text content for now from the existing reader logic
-        const paragraphs = this.cleanText.split('\n\n');
+        // 2. Apply Accessibility Transformations to Text Nodes only
+        this.applyAccessibilityToContainer(container);
 
-        html = paragraphs.map(p => {
-            // Check for Title marker (from backend)
-            if (p.startsWith('### ')) {
-                const titleText = p.replace('### ', '');
-                return `<h2 class="chapter-title">${this.processWord(titleText)}</h2>`;
+        // 3. Post-Process: Try to merge orphan images into tables
+        // Heuristic: If we see a table, then look at subsequent elements. 
+        // If we see an image, checks if the table has "empty" cells or cells with "Ref" that might need an image.
+        // Simplified: Inspect table rows. If a cell mentions "Figure" or "Image" or is just a "Ref" column, 
+        // pull the next available image from the DOM into it.
+        this.embedImagesInTables(container);
+    }
+
+    embedImagesInTables(container) {
+        // Find all tables
+        const tables = container.querySelectorAll('table');
+        tables.forEach(table => {
+            // Find all P tags containing IMGs that immediately follow the table
+            // We look at siblings of the table
+            let nextNode = table.nextElementSibling;
+            const imagesToMove = [];
+
+            // Limit search to next 100 siblings to find ALL images
+            // (Previous limit of 10 caused missing images and sync shifts if there was padding text)
+            let checks = 0;
+            while (nextNode && checks < 100) {
+                if (nextNode.tagName === 'P' && nextNode.querySelector('img')) {
+                    const img = nextNode.querySelector('img');
+                    imagesToMove.push({ note: nextNode, img: img });
+                } else if (nextNode.tagName === 'IMG') {
+                    imagesToMove.push({ note: nextNode, img: nextNode });
+                } else if (['H1', 'H2', 'TABLE'].includes(nextNode.tagName)) {
+                    // Stop if we hit a MAJOR section break, but allow H3/Text to be skipped
+                    // This ensures we don't steal images from the next chapter
+                    break;
+                }
+                nextNode = nextNode.nextElementSibling;
+                checks++;
             }
 
-            // 1. Process words
-            const words = p.split(/\s+/);
-            const content = words.map(word => this.processWord(word)).join(' ');
-            return `<p>${content}</p>`; // Wrap in P tags for better spacing
-        }).join('');
+            if (imagesToMove.length === 0) return;
 
-        container.innerHTML = html;
+            // Strategy: 
+            // Iterate rows. If we find a cell that looks like an image placeholder, put image there.
+            // Or just fill the last column?
+            const rows = table.querySelectorAll('tr');
+            let imgIndex = 0;
+
+            for (let i = 0; i < rows.length; i++) {
+                if (imgIndex >= imagesToMove.length) break;
+
+                const row = rows[i];
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 0) continue; // Skip header
+
+                // Target: First Column (often the Ref/Name column)
+                const targetCell = cells[0];
+                const text = targetCell.innerText.trim();
+
+                // Sync Logic:
+                // We have fewer images than rows ("il manque des images").
+                // We must only put an image if the line actually "looks" like a reference.
+                // Patterns:
+                // 1. Keywords: "Fig", "Image", "Ref".
+                // 2. IDs: Short uppercase codes (e.g. "XJ-900", "A12"), common in catalogs.
+                // 3. Not empty.
+
+                // Regex for ID: Allow #, and slightly longer codes.
+                // Also simple length check: If text is short (< 50 chars), it's likely a Ref/Code/Name, 
+                // whereas a Description would be longer.
+
+                const isIdLike = /^[#A-Z0-9\-\.\/\s]{2,25}$/i.test(text);
+                const isShort = text.length > 1 && text.length < 50;
+                const hasKeyword = /(fig|image|photo|view|ref|#)/i.test(text);
+
+                // If it looks like a Ref (ID pattern OR Short Text) AND we have images left
+                if ((isIdLike || hasKeyword || isShort) && imgIndex < imagesToMove.length) {
+                    // Move the next available image here
+                    const { note, img } = imagesToMove[imgIndex];
+
+                    const container = document.createElement('div');
+                    container.style.marginTop = "8px";
+                    container.style.textAlign = "center"; // Center in cell
+                    container.appendChild(img);
+
+                    targetCell.appendChild(container);
+
+                    // Cleanup origin
+                    if (note.tagName === 'P' && note.innerText.trim() === '') {
+                        note.remove();
+                    }
+
+                    imgIndex++;
+                }
+                // Else: Skip this row (it remains "seule" as requested)
+            }
+        });
+    }
+
+    applyAccessibilityToContainer(container) {
+        // TreeWalker to traverse only text nodes
+        const walker = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function (node) {
+                    // Skip empty/whitespace only
+                    if (!node.nodeValue.trim()) return NodeFilter.FILTER_SKIP;
+                    // Skip script/style tags just in case
+                    if (node.parentNode.tagName === 'SCRIPT' || node.parentNode.tagName === 'STYLE') return NodeFilter.FILTER_REJECT;
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+
+        const nodesToProcess = [];
+        while (walker.nextNode()) {
+            nodesToProcess.push(walker.currentNode);
+        }
+
+        // Process nodes (replace text node with span containing styled HTML)
+        nodesToProcess.forEach(node => {
+            const originalText = node.nodeValue;
+
+            // Process the text (Syllables, Phonemes, etc.)
+            // Note: processWord returns HTML string (e.g. <span class="syll">...</span>)
+            // But processWord works on words. We need to split the text node.
+
+            const words = originalText.split(/(\s+)/); // Split keeping delimiters
+            const processedHTML = words.map(w => {
+                // If whitespace, return as is
+                if (/^\s+$/.test(w)) return w;
+                return this.processWord(w);
+            }).join('');
+
+            // Create a temp container to parse the new HTML
+            const span = document.createElement('span');
+            span.innerHTML = processedHTML;
+
+            // Unpack the span to avoid unnecessary nesting? 
+            // Better to keep it or replace the text node with the children.
+            // Text node can be replaced by multiple nodes.
+            node.replaceWith(...span.childNodes);
+        });
     }
 
     processWord(word) {

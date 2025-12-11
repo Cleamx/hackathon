@@ -2,121 +2,84 @@ from abc import ABC, abstractmethod
 import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image, ImageOps
-import re
+import fitz  # PyMuPDF
+import os
 import logging
+import re
+import hashlib
+
+logger = logging.getLogger(__name__)
+
+import pymupdf4llm
+import logging
+import os
+import shutil
 
 logger = logging.getLogger(__name__)
 
 class OCRProvider(ABC):
     @abstractmethod
-    def extract_text(self, file_path: str) -> str:
+    def extract_text(self, file_path: str, doc_id: str = "temp") -> str:
+        # doc_id needed for image naming
         pass
 
-class TesseractOCR(OCRProvider):
-    def extract_text(self, file_path: str) -> str:
+class PyMuPDF4LLMService(OCRProvider):
+    def extract_text(self, file_path: str, doc_id: str = "temp") -> str:
+        """
+        Uses pymupdf4llm to convert PDF directly to Markdown.
+        Preserves Layout, Tables, and Headers.
+        Extracts images to static folder.
+        """
         try:
-            # Check if file is PDF
-            if file_path.lower().endswith('.pdf'):
-                return self._process_pdf(file_path)
-            else:
-                # Assume image
-                image = Image.open(file_path)
-                image = self._preprocess_image(image)
-                text = pytesseract.image_to_string(image)
-                return self._post_process_text(text)
+            logger.info(f"Starting PyMuPDF4LLM extraction for {file_path}")
+            
+            # Create a specific folder for this document's images to avoid collisions
+            # e.g. app/static/uploads/images/doc_1/
+            img_rel_path = f"images/{doc_id}"
+            img_output_dir = os.path.join("app/static/uploads", img_rel_path)
+            
+            # Clean/Create directory
+            if os.path.exists(img_output_dir):
+                shutil.rmtree(img_output_dir)
+            os.makedirs(img_output_dir, exist_ok=True)
+            
+            # Convert to Markdown
+            # pymupdf4llm writes images to 'image_path' and returns markdown with links to them.
+            md_text = pymupdf4llm.to_markdown(
+                file_path,
+                write_images=True,
+                image_path=img_output_dir,
+                image_format="png"
+            )
+            
+            # Fix Image Paths for Web
+            # The markdown will contain paths like "app/static/uploads/images/doc_1/image.png"
+            # We want "/static/uploads/images/doc_1/image.png"
+            
+            # Identify what the library outputted as path. 
+            # Usually it outputs the relative path we passed to image_path.
+            # Let's simply replace the filesystem prefix with the web prefix.
+            
+            # We know the files are in `app/static/uploads/images/{doc_id}`
+            # We want them to be served from `/static/uploads/images/{doc_id}`
+            
+            # Replace all instances of the output dir with the web alias
+            web_prefix = f"/static/uploads/{img_rel_path}"
+            
+            # This handles if pymupdf4llm used the full string we passed
+            md_text = md_text.replace(img_output_dir, web_prefix)
+            
+            # Also handle if it used relative paths (depending on CWD)
+            # Safe bet: Replace the common folder part
+            # "app/static/uploads" -> "/static/uploads"
+            md_text = md_text.replace("app/static/uploads", "/static/uploads")
+            
+            logger.info(f"Extraction complete for {doc_id}")
+            return md_text
+            
         except Exception as e:
-            logger.error(f"OCR failed for {file_path}: {e}")
+            logger.error(f"PyMuPDF4LLM failed: {e}")
             raise
 
-    def _process_pdf(self, file_path: str) -> str:
-        # Convert PDF to images with high quality settings
-        # DPI 300 is standard for OCR clarity.
-        try:
-            images = convert_from_path(file_path, dpi=300, timeout=120)
-        except Exception as e:
-            raise Exception(f"PDF Conversion failed: {e}")
-
-        full_text = ""
-        for i, image in enumerate(images):
-            # Preprocess image (Contrast, Binarization)
-            processed_image = self._preprocess_image(image)
-            
-            # Extract Text
-            page_text = pytesseract.image_to_string(processed_image, lang='fra+eng') # Dual lang support if available, else defaults
-            
-            # Clean page text individually to prevent merging across pages
-            clean_page_text = self._post_process_text(page_text)
-
-            # Append with page marker (Explicitly required for pagination splitting in API)
-            full_text += f"\n\n--- Page {i+1} ---\n\n{clean_page_text}"
-            
-        return full_text
-
-    def _preprocess_image(self, image: Image.Image) -> Image.Image:
-        """
-        Enhance image for OCR: Grayscale -> AutoContrast.
-        """
-        # Convert to grayscale
-        gray = image.convert('L')
-        # maximize contrast
-        enhanced = ImageOps.autocontrast(gray)
-        return enhanced
-
-    def _post_process_text(self, text: str) -> str:
-        """
-        Clean up raw OCR text and apply structure:
-        1. Fix split words (hyphen at end of line).
-        2. Detect Titles (Short lines, All Caps).
-        3. Fix broken paragraphs.
-        """
-        if not text:
-            return ""
-
-        # 1. Normalize line endings
-        text = text.replace('\r\n', '\n')
-
-        # 2. De-hyphenation: "exam-\nple" -> "example"
-        text = re.sub(r'(\w+)-\n+(\w+)', r'\1\2', text)
-
-        lines = text.split('\n')
-        processed_blocks = []
-        current_buffer = []
-
-        for line in lines:
-            line = line.strip()
-            if not line:
-                # Flush buffer as paragraph if exists
-                if current_buffer:
-                    processed_blocks.append(" ".join(current_buffer))
-                    current_buffer = []
-                continue
-
-            # Heuristic for Title/Header
-            # 1. Short line (< 80 chars)
-            # 2. No terminal punctuation (., ;, :)
-            # 3. Either All Caps OR Title Case
-            is_title = False
-            if len(line) < 80 and not line[-1] in '.,;:':
-                # Check for All Caps (allow some non-letters like numbers)
-                if line.isupper() or (line.istitle() and len(line) < 50):
-                   is_title = True
-            
-            if is_title:
-                # Flush previous paragraph
-                if current_buffer:
-                    processed_blocks.append(" ".join(current_buffer))
-                    current_buffer = []
-                # Mark as title (using markdown-like syntax for frontend to pick up)
-                processed_blocks.append(f"### {line}")
-            else:
-                # Regular text line, append to buffer
-                current_buffer.append(line)
-        
-        # Flush remaining
-        if current_buffer:
-            processed_blocks.append(" ".join(current_buffer))
-
-        return '\n\n'.join(processed_blocks)
-
 def get_ocr_service() -> OCRProvider:
-    return TesseractOCR()
+    return PyMuPDF4LLMService()

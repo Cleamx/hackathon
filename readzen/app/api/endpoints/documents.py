@@ -34,10 +34,25 @@ async def process_document(document_id: int, file_path: str):
             # Running synchronous OCR in a threadpool to not block the event loop
             import asyncio
             loop = asyncio.get_running_loop()
-            text = await loop.run_in_executor(None, ocr_service.extract_text, file_path)
+            text = await loop.run_in_executor(None, ocr_service.extract_text, file_path, str(document_id))
 
             document.extracted_text = text
             document.status = ProcessingStatus.COMPLETED.value
+            
+            # AI Summarization
+            try:
+                from app.services.ai.summarizer import get_summarizer
+                summarizer = get_summarizer()
+                logger.info(f"Generating summary for doc {document_id}")
+                # Synchronous call in background thread
+                summary = await loop.run_in_executor(None, summarizer.summarize_text, text)
+                document.summary = summary
+                logger.info(f"Summary generated for doc {document_id}")
+            except Exception as e:
+                logger.warning(f"Summary generation failed for doc {document_id}: {e}")
+                # Don't fail the whole process if summary fails
+                document.summary = "Summary unavailable."
+
             await session.commit()
             logger.info(f"Document {document_id} processed successfully")
 
@@ -130,7 +145,7 @@ async def get_document_text(document_id: int, db: AsyncSession = Depends(get_db)
     if not pages:
         pages = [full_text]
 
-    return {"text": full_text, "pages": pages}
+    return {"text": full_text, "pages": pages, "summary": document.summary}
 
 @router.delete("/{document_id}", status_code=204)
 async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):

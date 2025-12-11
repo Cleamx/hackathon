@@ -339,9 +339,11 @@ body.theme-sepia .main-header {
 .page-frame {
     background-color: var(--color-surface);
     color: var(--color-text-main);
-    padding: 80px 100px;
+    padding: 40px 60px;
+    /* Reduced padding */
     margin: 0 auto 60px;
-    max-width: 850px;
+    max-width: 1000px;
+    /* Increased width */
     min-height: 80vh;
     box-shadow: var(--shadow-sm);
     border-radius: 2px;
@@ -410,25 +412,65 @@ input[type=range] {
     text-align: center;
 }
 
-/* Mobile adjustments */
-.btn-icon {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    cursor: pointer;
-    font-size: 1.1rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    /* Circle */
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-text-main);
-    box-shadow: var(--shadow-sm);
-    margin: 0 4px;
-    padding: 0;
-    /* Clear padding for centering */
+.reader-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    max-height: 250px;
+    /* Smaller as requested */
+    margin: 10px auto;
+    border-radius: 4px;
+    /* Slight round */
+    object-fit: contain;
+}
+
+/* Markdown Tables (Simple but Clear) */
+.page-frame table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    font-size: 0.9em;
+    border: 2px solid #333;
+    /* Strong Frame */
+}
+
+.page-frame th,
+.page-frame td {
+    padding: 12px;
+    border: 1px solid #666;
+    /* Clear Grid */
+    text-align: left;
+    vertical-align: middle;
+    /* Center vertically often looks better */
+}
+
+.page-frame th {
+    font-weight: 700;
+    background-color: #f3f4f6;
+    /* Light gray header */
+    border-bottom: 2px solid #333;
+    color: #111;
+}
+
+.page-frame tr:nth-child(even) {
+    background-color: #f9fafb;
+    /* Very subtle striping to help guide eye */
+}
+
+/* When image is inside table (moved by JS), adjust styles */
+.page-frame td img {
+    margin: 0;
+    max-height: 150px;
+    /* Even smaller in table */
+    width: auto;
+    display: block;
+}
+
+/* Clearfix */
+.page-frame::after {
+    content: "";
+    display: table;
+    clear: both;
 }
 
 .btn-icon:hover {

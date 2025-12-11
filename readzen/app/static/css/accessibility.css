@@ -297,3 +297,74 @@ body.theme-sepia {
 .back-btn {
     margin-right: 15px;
 }
+
+/* Chapter Navigation (Bullets) */
+#chapter-nav {
+    position: fixed;
+    /* Fixed to viewport so it is always visible on the side */
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    z-index: 1000;
+    /* Ensure on top */
+}
+
+/* Hide in mobile/small screens */
+@media (max-width: 900px) {
+    #chapter-nav {
+        display: none;
+    }
+}
+
+.nav-bullet {
+    width: 14px;
+    /* Slightly larger */
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--text-color);
+    /* Use text color (dark) instead of border */
+    opacity: 0.3;
+    /* Faded by default */
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.nav-bullet:hover {
+    background-color: var(--primary-color, #4a90e2);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.nav-bullet.active {
+    background-color: var(--primary-color, #4a90e2);
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.2);
+}
+
+/* Tooltip for Title */
+.nav-bullet::after {
+    content: attr(data-title);
+    position: absolute;
+    left: 25px;
+    /* Right of bullet */
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--text-color);
+    color: var(--bg-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.nav-bullet:hover::after {
+    opacity: 1;
+}
