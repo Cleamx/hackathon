@@ -63,6 +63,7 @@
         </div>
         <button class="btn" id="ruler-toggle" title="Guide de lecture">📏</button>
         <button class="btn" id="summary-toggle" title="Résumé AI">✨ Résumé</button>
+        <button class="btn" id="braille-export-btn" title="Exporter en Braille (.brf)">⠼⠃⠗⠋</button>
         <button class="btn" id="fullscreen-btn" title="Mode Zen (Plein Écran)">⛶</button>
     </div>
 
@@ -303,6 +304,25 @@
                 } else {
                     summaryPanel.style.display = 'none';
                 }
+            });
+        }
+
+        // Braille Export
+        const brailleBtn = document.getElementById('braille-export-btn');
+        if (brailleBtn) {
+            brailleBtn.addEventListener('click', () => {
+                const text = document.getElementById('page-content').innerText;
+                const braille = accessibility.textToBraille(text);
+
+                const blob = new Blob([braille], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `document_braille.brf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             });
         }
     });

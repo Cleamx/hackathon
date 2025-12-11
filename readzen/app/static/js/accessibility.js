@@ -501,6 +501,46 @@ class AccessibilityManager {
         const syllableRegex = /[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/gi;
         return word.match(syllableRegex) || [word];
     }
+
+    // --- Braille Export ---
+
+    textToBraille(text) {
+        // Standard ASCII Braille mapping (Grade 1)
+        const map = {
+            'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd', 'e': 'e', 'f': 'f', 'g': 'g', 'h': 'h', 'i': 'i', 'j': 'j',
+            'k': 'k', 'l': 'l', 'm': 'm', 'n': 'n', 'o': 'o', 'p': 'p', 'q': 'q', 'r': 'r', 's': 's', 't': 't',
+            'u': 'u', 'v': 'v', 'w': 'w', 'x': 'x', 'y': 'y', 'z': 'z',
+            ' ': ' ', '\n': '\n', '\r': '',
+            '1': 'a', '2': 'b', '3': 'c', '4': 'd', '5': 'e', '6': 'f', '7': 'g', '8': 'h', '9': 'i', '0': 'j',
+            ',': '1', ';': '2', ':': '3', '.': '4', '!': '6', '(': '7', ')': '7', '?': '8', '"': '8', "'": '9',
+            '-': '-', '/': 'l', '*': '9'
+        };
+
+        const result = [];
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const low = char.toLowerCase();
+
+            // Capital Indicator (Dot 6 -> comma in ASCII)
+            if (char >= 'A' && char <= 'Z') {
+                result.push(',');
+            }
+
+            // Number Indicator (Dots 3-4-5-6 -> # in ASCII)
+            if (char >= '0' && char <= '9') {
+                result.push('#');
+            }
+
+            if (map[low]) {
+                result.push(map[low]);
+            } else {
+                result.push(' '); // Unmapped char space or ignore
+            }
+        }
+
+        return result.join('');
+    }
 }
 
 const accessibility = new AccessibilityManager();
