@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="upload-area" id="drop-zone">
+    <h2>Upload your PDF</h2>
+    <p>Drag and drop or click to select</p>
+    <input type="file" id="file-input" accept=".pdf" style="display: none;">
+    <button class="btn" onclick="document.getElementById('file-input').click()">Select File</button>
+</div>
+
+<div id="upload-status" class="hidden">
+    <p>Uploading... <span id="progress">0%</span></p>
+</div>
+
+<div id="processing-status" class="hidden">
+    <p>Processing document... This may take a moment.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="toolbar">
+    <button class="btn" id="theme-toggle">Toggle Theme</button>
+    <button class="btn" id="font-toggle">Dyslexic Font</button>
+    <button class="btn" id="tts-btn">Read Aloud</button>
+    <span id="reading-time">Est. reading time: calculating...</span>
+</div>
+
+<div class="content" id="reader-content" data-doc-id="{{ document.id }}">
+    {% if document.extract_text %}
+    {{ document.extract_text }}
+    {% else %}
+    Loading text...
+    {% endif %}
+</div>
+
+<script>
+    const DOC_ID = {{ document.id }};
+    const INITIAL_STATUS = "{{ document.status }}";
+</script>
+{% endblock %}

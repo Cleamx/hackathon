@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ReadZen{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Dyslexic font CDN or local could be used, for now assuming system fallbacks or webfont -->
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+</head>
+<body class="theme-light">
+    <div class="container">
+        <header>
+            <a href="/"><h1>ReadZen</h1></a>
+            <nav>
+                <!-- Nav items -->
+            </nav>
+        </header>
+        
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer>
+            <p>&copy; 2024 ReadZen</p>
+        </footer>
+    </div>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+import pytest
+import os
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from app.main import app
+from app.core.database import Base, get_db
+from app.core import config
+
+# Use an in-memory SQLite database for tests
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+engine = create_async_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+
+async def override_get_db():
+    async with TestingSessionLocal() as session:
+        yield session
+
+app.dependency_overrides[get_db] = override_get_db
+
+# Patch SessionLocal for background tasks
+from app.core import database
+database.SessionLocal = TestingSessionLocal
+
+@pytest.fixture(scope="module")
+def anyio_backend():
+    return "asyncio"
+
+@pytest.fixture(scope="module")
+async def client():
+    # Create tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    async with AsyncClient(app=app, base_url="http://test") as c:
+        yield c
+    
+    # Drop tables (optional for in-memory)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
