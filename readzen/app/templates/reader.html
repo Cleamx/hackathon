@@ -2,8 +2,21 @@
 
 {% block content %}
 <div class="reader-layout">
+    <div id="tags-container" class="tags-row">
+        <!-- Tags injected here -->
+    </div>
+
     <div class="toolbar">
-        <button class="btn" id="theme-toggle" title="Changer de thème">Theme</button>
+        <div class="dropdown-container">
+            <button class="btn" id="theme-toggle" title="Changer de thème">Theme ▾</button>
+            <div class="dropdown-menu">
+                <div class="dropdown-item">
+                    <span style="font-size: 0.8rem; margin-bottom: 4px; display: block;">Contraste</span>
+                    <input type="range" id="contrast-slider" min="0.5" max="1.5" step="0.1" value="1"
+                        onchange="updateContrast(this.value)" title="Ajuster le contraste">
+                </div>
+            </div>
+        </div>
         <button class="btn" id="font-toggle" title="Changer de police">Police</button>
 
         <div class="slider-group">
@@ -23,36 +36,34 @@
                 onchange="updateLineHeight(this.value)" title="Interligne">
         </div>
 
-        <div class="slider-group" style="padding: 4px; gap: 0;">
-            <button class="btn-icon" id="tts-play" title="Lecture">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-            </button>
-            <button class="btn-icon" id="tts-pause" title="Pause" style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="6" y="4" width="4" height="16"></rect>
-                    <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-            </button>
-            <button class="btn-icon" id="tts-stop" title="Stop">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                </svg>
-            </button>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <div class="slider-group" style="padding: 4px; gap: 0;">
+                <button class="btn-icon" id="tts-play" title="Lecture">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="tts-pause" title="Pause" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="tts-stop" title="Stop">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    </svg>
+                </button>
+            </div>
+            <span id="reading-time"
+                style="font-size: 0.65rem; color: var(--color-text-muted); margin-top: 2px; font-weight: 600;"></span>
         </div>
         <button class="btn" id="ruler-toggle" title="Guide de lecture">📏</button>
         <button class="btn" id="summary-toggle" title="Résumé AI">✨ Résumé</button>
         <button class="btn" id="fullscreen-btn" title="Mode Zen (Plein Écran)">⛶</button>
-        <span id="reading-time"
-            style="margin-left: auto; font-size: 0.8rem; color: var(--color-text-muted); font-weight: 500;"></span>
-    </div>
-
-    <div id="tags-container" class="tags-row" style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <!-- Tags injected here -->
     </div>
 
     <div id="reader-container" style="position: relative;">
@@ -128,16 +139,77 @@
                 }
 
                 if (synth.speaking) {
-                    // Already speaking but logic says we clicked play? 
-                    // Should theoretically not happen if UI is correct, unless overlapping utterances.
                     synth.cancel();
                 }
 
-                const text = document.getElementById('page-content').innerText;
-                utterance = new SpeechSynthesisUtterance(text);
+                // --- Enhanced TTS with Visual Guide ---
+                // 1. Get all word spans
+                const wordSpans = Array.from(document.querySelectorAll('.read-word'));
 
-                utterance.onend = () => updateTTSUI('idle');
-                utterance.onerror = () => updateTTSUI('idle');
+                // 2. Construct text and map ranges
+                let ttsText = "";
+                const wordMap = [];
+
+                wordSpans.forEach(span => {
+                    const word = span.innerText; // Use innerText to get clean text
+                    if (!word.trim()) return; // Skip empty
+
+                    const start = ttsText.length;
+                    ttsText += word + " "; // Add space
+                    const end = ttsText.length - 1; // Exclude space
+
+                    wordMap.push({
+                        start: start,
+                        end: end,
+                        element: span
+                    });
+                });
+
+                if (!ttsText) {
+                    const text = document.getElementById('page-content').innerText;
+                    ttsText = text; // Fallback if no spans found
+                }
+
+                utterance = new SpeechSynthesisUtterance(ttsText);
+
+                // 3. Highlight Logic
+                utterance.onboundary = (event) => {
+                    if (event.name === 'word') {
+                        const charIndex = event.charIndex;
+
+                        // Find the word that contains this charIndex
+                        // Since 'word' event might trigger on punctuation, we search close matches
+                        const match = wordMap.find(w => charIndex >= w.start && charIndex < w.end + 2);
+                        // +2 tolerance for spaces/punctuation
+
+                        // Clear previous active
+                        document.querySelectorAll('.word-active').forEach(el => el.classList.remove('word-active'));
+
+                        if (match) {
+                            match.element.classList.add('word-active');
+
+                            // Auto-scroll to keep meaningful visual context
+                            // Only scroll if element is confusingly off-screen
+                            const rect = match.element.getBoundingClientRect();
+                            const wHeight = window.innerHeight;
+                            if (rect.top < 80 || rect.bottom > wHeight - 80) {
+                                match.element.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                            }
+                        }
+                    }
+                };
+
+                utterance.onend = () => {
+                    updateTTSUI('idle');
+                    document.querySelectorAll('.word-active').forEach(el => el.classList.remove('word-active'));
+                };
+                utterance.onerror = () => {
+                    updateTTSUI('idle');
+                    document.querySelectorAll('.word-active').forEach(el => el.classList.remove('word-active'));
+                };
 
                 synth.speak(utterance);
                 updateTTSUI('playing');
@@ -151,6 +223,7 @@
             ttsStop.addEventListener('click', () => {
                 window.speechSynthesis.cancel();
                 updateTTSUI('idle');
+                document.querySelectorAll('.word-active').forEach(el => el.classList.remove('word-active'));
             });
 
             // Safety: cancel on page unload
@@ -158,6 +231,28 @@
                 window.speechSynthesis.cancel();
             });
         }
+
+        // Scroll Aware Toolbar
+        let lastScrollY = window.scrollY;
+        const toolbar = document.querySelector('.toolbar');
+
+        window.addEventListener('scroll', () => {
+            if (!toolbar) return;
+
+            const currentScrollY = window.scrollY;
+
+            // Should usually hide when going down, show when going up.
+            // But we might want to keep it shown at the very top.
+            if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                // Scrolling DOWN
+                toolbar.classList.add('hidden-scroll');
+            } else {
+                // Scrolling UP or at top
+                toolbar.classList.remove('hidden-scroll');
+            }
+
+            lastScrollY = currentScrollY;
+        }, { passive: true });
 
         // Fullscreen
         const fsBtn = document.getElementById('fullscreen-btn');
@@ -314,11 +409,18 @@
         const minutes = Math.ceil(words / wpm);
         const readingTimeSpan = document.getElementById('reading-time');
         if (readingTimeSpan) {
-            readingTimeSpan.innerText = `${minutes} min read (page)`;
+            readingTimeSpan.innerText = `${minutes} min`;
         }
     }
 
     // --- New Features (Zoom, Tags, Resume) ---
+
+    function updateContrast(value) {
+        const content = document.getElementById('page-content');
+        if (content) {
+            content.style.filter = `contrast(${value})`;
+        }
+    }
 
     function updateFontSize(size) {
         const content = document.getElementById('page-content');
