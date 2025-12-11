@@ -5,6 +5,18 @@
     <h2>Paramètres d'Accessibilité</h2>
 
     <div class="settings-card">
+        <h3>Profils Utilisateurs</h3>
+        <p class="hint">Sélectionnez un profil pré-configuré pour ajuster les paramètres automatiquement.</p>
+        <div class="option-group">
+            <button class="btn btn-outline" onclick="accessibility.setProfile('dyslexie')">Dyslexie</button>
+            <button class="btn btn-outline" onclick="accessibility.setProfile('malvoyance')">Malvoyance</button>
+            <button class="btn btn-outline" onclick="accessibility.setProfile('tda')">TDA/H</button>
+            <button class="btn btn-outline" onclick="accessibility.setProfile('fatigue')">Fatigue Visuelle</button>
+            <button class="btn btn-outline" onclick="accessibility.setProfile('lecture-rapide')">Lecture Rapide</button>
+        </div>
+    </div>
+
+    <div class="settings-card">
         <h3>Thème</h3>
         <div class="option-group">
             <button class="btn btn-outline" onclick="accessibility.applyTheme('theme-light')">Clair</button>
@@ -68,6 +80,8 @@
 
         <hr class="divider">
 
+        <hr class="divider">
+
         <!-- Silent Letters Section -->
         <div class="feature-block">
             <div class="option-row">
@@ -79,6 +93,45 @@
                 </label>
             </div>
             <p class="hint">Affiche les lettres muettes en gris clair/italique.</p>
+        </div>
+    </div>
+
+    <!-- Semantic / ADHD Section -->
+    <div class="settings-card">
+        <h3>Compréhension & Sémantique (TDA/H)</h3>
+
+        <div class="feature-block">
+            <div class="option-row">
+                <label class="feature-title">Noms Propres (Personnages/Lieux)</label>
+                <label class="switch">
+                    <input type="checkbox" id="semantic-proper-toggle"
+                        onchange="accessibility.toggleSemantic('proper', this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="feature-block">
+            <div class="option-row">
+                <label class="feature-title">Dates et Chiffres</label>
+                <label class="switch">
+                    <input type="checkbox" id="semantic-date-toggle"
+                        onchange="accessibility.toggleSemantic('date', this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="feature-block">
+            <div class="option-row">
+                <label class="feature-title">Mots Longs / Concepts</label>
+                <label class="switch">
+                    <input type="checkbox" id="semantic-concept-toggle"
+                        onchange="accessibility.toggleSemantic('concept', this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p class="hint">Met en évidence les mots de plus de 8 lettres.</p>
         </div>
     </div>
 </div>
@@ -104,6 +157,13 @@
         // Silent
         if (document.getElementById('silent-toggle')) {
             document.getElementById('silent-toggle').checked = prefs.silentLetters;
+        }
+
+        // Semantic
+        if (document.getElementById('semantic-proper-toggle')) {
+            document.getElementById('semantic-proper-toggle').checked = prefs.semanticProper;
+            document.getElementById('semantic-date-toggle').checked = prefs.semanticDate;
+            document.getElementById('semantic-concept-toggle').checked = prefs.semanticConcept;
         }
     });
 </script>

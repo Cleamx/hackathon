@@ -16,6 +16,8 @@ body.theme-light {
     --secondary-color: #f5f5f5;
     --border-color: #dddddd;
     --card-bg: #ffffff;
+    --ruler-color: rgba(255, 255, 0, 0.3);
+    --ruler-border: rgba(0, 0, 0, 0.2);
 }
 
 body.theme-dark {
@@ -24,6 +26,8 @@ body.theme-dark {
     --secondary-color: #2d2d2d;
     --border-color: #404040;
     --card-bg: #2d2d2d;
+    --ruler-color: rgba(255, 255, 0, 0.15);
+    --ruler-border: rgba(255, 255, 255, 0.2);
 }
 
 body.theme-sepia {
@@ -32,6 +36,33 @@ body.theme-sepia {
     --secondary-color: #e8ded2;
     --border-color: #d1c7b7;
     --card-bg: #fffbf0;
+    --ruler-color: rgba(91, 70, 54, 0.1);
+    --ruler-border: rgba(91, 70, 54, 0.2);
+}
+
+/* Reading Ruler */
+.reading-ruler {
+    position: absolute;
+    /* Relative to reader-container */
+    left: 0;
+    right: 0;
+    height: 40px;
+    background-color: var(--ruler-color);
+    border-top: 1px solid var(--ruler-border);
+    border-bottom: 1px solid var(--ruler-border);
+    pointer-events: none;
+    z-index: 10;
+    transform: translateY(-50%);
+    /* Removed giant box-shadow to prevent overflowing the "window" */
+    border-radius: 4px;
+    /* Soften edges */
+}
+
+#reader-container {
+    position: relative;
+    /* Anchor for absolute ruler */
+    /* Ensure content clips if we want strict containment, though usually text flows. 
+       We leave overflow visible for scroll but the ruler respects width 100% of this container. */
 }
 
 /* Syllable Styles */
@@ -69,6 +100,31 @@ body.theme-sepia {
     font-style: italic;
     color: var(--text-color);
     /* Inherit but fade */
+}
+
+/* Semantic Highlighting */
+.semantic-proper {
+    background-color: rgba(66, 165, 245, 0.15);
+    /* Light Blue */
+    border-radius: 3px;
+    padding: 0 1px;
+    font-weight: 500;
+}
+
+.semantic-date {
+    background-color: rgba(102, 187, 106, 0.15);
+    /* Light Green */
+    border-radius: 3px;
+    padding: 0 1px;
+    font-family: monospace;
+    /* Distinction */
+}
+
+.semantic-concept {
+    text-decoration: underline;
+    text-decoration-color: rgba(239, 83, 80, 0.5);
+    /* Light Red Underline */
+    text-decoration-thickness: 2px;
 }
 
 /* Phoneme Colors (Dynamic classes will utilize inline styles or these helper classes) */

@@ -111,3 +111,56 @@ function calculateReadingTime() {
         readingTimeSpan.innerText = `Est. reading time: ${minutes} min`;
     }
 }
+
+// Reading Ruler Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const ruler = document.getElementById('reading-ruler');
+    const toggleBtn = document.getElementById('ruler-toggle');
+    const contentArea = document.getElementById('page-content');
+    let rulerEnabled = false;
+
+    if (toggleBtn && ruler && contentArea) {
+        // Toggle Enable/Disable
+        toggleBtn.addEventListener('click', () => {
+            rulerEnabled = !rulerEnabled;
+            toggleBtn.classList.toggle('active', rulerEnabled);
+
+            // If toggling on while mouse is already over content, show it
+            if (rulerEnabled && contentArea.matches(':hover')) {
+                ruler.style.display = 'block';
+            } else {
+                ruler.style.display = 'none';
+            }
+        });
+
+        // Show when entering content
+        contentArea.addEventListener('mouseenter', () => {
+            if (rulerEnabled) ruler.style.display = 'block';
+        });
+
+        // Hide when leaving content
+        contentArea.addEventListener('mouseleave', () => {
+            if (rulerEnabled) ruler.style.display = 'none';
+        });
+
+        // Follow mouse inside content
+        contentArea.addEventListener('mousemove', (e) => {
+            if (rulerEnabled) {
+                // Since ruler is absolute inside #reader-container (parent of contentArea? No, they are siblings or nested)
+                // Wait, I put ruler in #reader-container. contentArea is #page-content.
+                // Let's use #reader-container as the reference frame.
+                const container = document.getElementById('reader-container');
+                const rect = container.getBoundingClientRect();
+
+                // Calculate Y relative to the container top
+                // e.clientY is viewport Y. rect.top is viewport Y of container.
+                // We also need to account for scroll INSIDE the container if it scrolls? 
+                // Usually text page scrolls with window.
+                // If absolute positioned, it moves with scroll. So we just map to the point on the element.
+
+                const relativeY = e.clientY - rect.top;
+                ruler.style.top = `${relativeY}px`;
+            }
+        });
+    }
+});
