@@ -254,7 +254,7 @@ class AccessibilityManager {
 
             // 1. Process words
             const words = p.split(/\s+/);
-            const content = words.map(word => this.processWord(word)).join(' ');
+            const content = words.map(word => `<span class="read-word">${this.processWord(word)}</span>`).join(' ');
             return `<p>${content}</p>`; // Wrap in P tags for better spacing
         }).join('');
 
