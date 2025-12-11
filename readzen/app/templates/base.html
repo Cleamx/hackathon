@@ -7,32 +7,33 @@
     <title>{% block title %}ReadZen{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/accessibility.css">
-    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+
 </head>
 
 <body class="theme-light">
-    <div class="container">
-        <header class="main-header">
+    <header class="main-header">
+        <div class="container header-content">
             <div class="header-left">
-                <a href="/library" class="nav-link back-btn">← Bibliothèque</a>
                 <a href="/" class="logo">
                     <h1>ReadZen</h1>
                 </a>
             </div>
             <nav class="main-nav">
-                <a href="/library" class="nav-link">Bibliothèque</a>
+                <a href="/library" class="nav-link">Ma Bibliothèque</a>
                 <a href="/accessibility" class="nav-link" aria-label="Paramètres d'accessibilité">⚙️ Accessibilité</a>
             </nav>
-        </header>
+        </div>
+    </header>
 
-        <main>
-            {% block content %}{% endblock %}
-        </main>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
 
-        <footer>
-            <p>&copy; 2024 ReadZen</p>
-        </footer>
-    </div>
+    <footer class="container"
+        style="padding: 40px 0; text-align: center; color: var(--color-text-muted); font-size: 0.9rem;">
+        <p>&copy; 2024 ReadZen - Conçu pour la lecture.</p>
+    </footer>
+
     <script src="/static/js/accessibility.js"></script>
     <script src="/static/js/main.js"></script>
 </body>

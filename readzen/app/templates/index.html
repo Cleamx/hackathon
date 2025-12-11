@@ -1,18 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="upload-area" id="drop-zone">
-    <h2>Upload your PDF</h2>
-    <p>Drag and drop or click to select</p>
-    <input type="file" id="file-input" accept=".pdf" style="display: none;">
-    <button class="btn" onclick="document.getElementById('file-input').click()">Select File</button>
-</div>
+<section class="hero-section">
+    <h2 class="hero-title">La lecture, simplifiée.</h2>
+    <p class="hero-subtitle">Transformez vos PDF en une expérience de lecture fluide, accessible et sans distraction.
+    </p>
 
-<div id="upload-status" class="hidden">
-    <p>Uploading... <span id="progress">0%</span></p>
-</div>
+    <div class="upload-area" id="drop-zone">
+        <span class="upload-icon">📄</span>
+        <h3>Déposez votre PDF ici</h3>
+        <p style="color: var(--color-text-muted); margin-bottom: 24px;">ou cliquez pour parcourir vos fichiers</p>
+        <input type="file" id="file-input" accept=".pdf" style="display: none;">
+        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Sélectionner un
+            fichier</button>
+    </div>
 
-<div id="processing-status" class="hidden">
-    <p>Processing document... This may take a moment.</p>
-</div>
+    <div id="upload-status" class="hidden" style="margin-top: 24px; color: var(--color-primary); font-weight: 500;">
+        <p>Téléchargement... <span id="progress">0%</span></p>
+    </div>
+
+    <div id="processing-status" class="hidden" style="margin-top: 24px;">
+        <div class="processing-spinner"></div>
+        <p>Analyse du document en cours...</p>
+    </div>
+</section>
 {% endblock %}

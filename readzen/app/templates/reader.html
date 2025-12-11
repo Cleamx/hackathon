@@ -1,50 +1,72 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="toolbar">
-    <button class="btn" id="theme-toggle">Theme</button>
-    <button class="btn" id="font-toggle">Police</button>
+<div class="reader-layout">
+    <div class="toolbar">
+        <button class="btn" id="theme-toggle" title="Changer de thème">Theme</button>
+        <button class="btn" id="font-toggle" title="Changer de police">Police</button>
 
-    <div class="slider-group" style="display: flex; align-items: center; gap: 5px; margin: 0 10px;">
-        <span style="font-size: 0.8rem">A-</span>
-        <input type="range" id="font-size-slider" min="14" max="32" value="20" onchange="updateFontSize(this.value)"
-            title="Taille de la police">
-        <span style="font-size: 0.8rem">A+</span>
+        <div class="slider-group">
+            <span style="font-size: 0.8rem">A</span>
+            <input type="range" id="font-size-slider" min="16" max="32" value="20" onchange="updateFontSize(this.value)"
+                title="Taille de la police">
+            <span style="font-size: 1.2rem">A</span>
+        </div>
+
+        <div class="slider-group" style="border-left: 1px solid var(--color-border); padding-left: 10px;">
+            <span style="font-size: 0.8rem">↔</span>
+            <input type="range" id="letter-spacing-slider" min="0" max="3" step="0.5" value="0"
+                onchange="updateLetterSpacing(this.value)" title="Espacement caractères">
+
+            <span style="font-size: 0.8rem; margin-left: 8px;">↕</span>
+            <input type="range" id="line-height-slider" min="1.4" max="2.4" step="0.1" value="1.8"
+                onchange="updateLineHeight(this.value)" title="Interligne">
+        </div>
+
+        <div class="slider-group" style="padding: 4px; gap: 0;">
+            <button class="btn-icon" id="tts-play" title="Lecture">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            </button>
+            <button class="btn-icon" id="tts-pause" title="Pause" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            </button>
+            <button class="btn-icon" id="tts-stop" title="Stop">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                </svg>
+            </button>
+        </div>
+        <button class="btn" id="ruler-toggle" title="Guide de lecture">📏</button>
+        <button class="btn" id="fullscreen-btn" title="Mode Zen (Plein Écran)">⛶</button>
+        <span id="reading-time"
+            style="margin-left: auto; font-size: 0.8rem; color: var(--color-text-muted); font-weight: 500;"></span>
     </div>
 
-    <!-- New Spacing Controls -->
-    <div class="slider-group"
-        style="display: flex; align-items: center; gap: 5px; margin: 0 10px; border-left: 1px solid #ddd; padding-left: 10px;">
-        <span style="font-size: 0.8rem">↔</span>
-        <input type="range" id="letter-spacing-slider" min="0" max="5" step="0.5" value="0"
-            onchange="updateLetterSpacing(this.value)" title="Espacement caractères">
-
-        <span style="font-size: 0.8rem; margin-left: 8px;">↕</span>
-        <input type="range" id="line-height-slider" min="1.2" max="3" step="0.2" value="1.8"
-            onchange="updateLineHeight(this.value)" title="Interligne">
+    <div id="tags-container" class="tags-row" style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <!-- Tags injected here -->
     </div>
 
-    <button class="btn" id="tts-btn">Lecture Vocale</button>
-    <button class="btn" id="ruler-toggle">Guide</button>
-    <button class="btn" id="fullscreen-btn" title="Plein Écran">⛶</button>
-    <span id="reading-time" style="margin-left: auto; align-self: center; font-size: 0.9rem;"></span>
-</div>
+    <div id="reader-container" style="position: relative;">
+        <div id="page-content" class="page-frame">
+            <div class="loading-spinner"></div>
+            Chargement du document...
+        </div>
+        <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
 
-<div id="tags-container" class="tags-row" style="padding: 10px 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-    <!-- Tags will be injected here -->
-</div>
-
-<div id="reader-container">
-    <div id="page-content" class="page-frame">
-        Loading...
-    </div>
-    <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
-
-    <div class="pagination-controls" id="pagination-controls"
-        style="display: none; justify-content: center; gap: 20px; align-items: center; margin-top: auto; padding-top: 20px;">
-        <button class="btn" id="prev-page" disabled>Previous</button>
-        <span id="page-indicator">Page 1 / ?</span>
-        <button class="btn" id="next-page">Next</button>
+        <div class="pagination-controls" id="pagination-controls"
+            style="display: none; justify-content: center; gap: 20px; align-items: center; margin-bottom: 40px;">
+            <button class="btn" id="prev-page" disabled>Précédent</button>
+            <span id="page-indicator" style="font-variant-numeric: tabular-nums;">Page 1 / ?</span>
+            <button class="btn btn-primary" id="next-page">Suivant</button>
+        </div>
     </div>
 </div>
 
@@ -68,13 +90,66 @@
         document.getElementById('prev-page').addEventListener('click', () => changePage(-1));
         document.getElementById('next-page').addEventListener('click', () => changePage(1));
 
-        // TTS
-        const ttsBtn = document.getElementById('tts-btn');
-        if (ttsBtn) {
-            ttsBtn.addEventListener('click', () => {
+        // TTS Advanced Logic
+        const ttsPlay = document.getElementById('tts-play');
+        const ttsPause = document.getElementById('tts-pause');
+        const ttsStop = document.getElementById('tts-stop');
+
+        let utterance = null;
+
+        function updateTTSUI(state) {
+            // state: 'idle', 'playing', 'paused'
+            if (state === 'playing') {
+                ttsPlay.style.display = 'none';
+                ttsPause.style.display = 'inline-flex';
+            } else if (state === 'paused') {
+                ttsPlay.style.display = 'inline-flex';
+                ttsPause.style.display = 'none';
+            } else { // idle
+                ttsPlay.style.display = 'inline-flex';
+                ttsPause.style.display = 'none';
+            }
+        }
+
+        if (ttsPlay && ttsPause && ttsStop) {
+            ttsPlay.addEventListener('click', () => {
+                const synth = window.speechSynthesis;
+
+                if (synth.paused) {
+                    synth.resume();
+                    updateTTSUI('playing');
+                    return;
+                }
+
+                if (synth.speaking) {
+                    // Already speaking but logic says we clicked play? 
+                    // Should theoretically not happen if UI is correct, unless overlapping utterances.
+                    synth.cancel();
+                }
+
                 const text = document.getElementById('page-content').innerText;
-                const utterance = new SpeechSynthesisUtterance(text);
-                window.speechSynthesis.speak(utterance);
+                utterance = new SpeechSynthesisUtterance(text);
+
+                utterance.onend = () => updateTTSUI('idle');
+                utterance.onerror = () => updateTTSUI('idle');
+
+                synth.speak(utterance);
+                updateTTSUI('playing');
+            });
+
+            ttsPause.addEventListener('click', () => {
+                window.speechSynthesis.pause();
+                updateTTSUI('paused');
+            });
+
+            ttsStop.addEventListener('click', () => {
+                window.speechSynthesis.cancel();
+                updateTTSUI('idle');
+            });
+
+            // Safety: cancel on page unload
+            window.addEventListener('beforeunload', () => {
+                window.speechSynthesis.cancel();
             });
         }
 

@@ -50,67 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Reader Page Polling and Logic
-    const readerContent = document.getElementById('reader-content');
-    if (readerContent && typeof DOC_ID !== 'undefined') {
-        if (typeof INITIAL_STATUS !== 'undefined' && INITIAL_STATUS !== 'completed') {
-            pollStatus(DOC_ID);
-        } else {
-            calculateReadingTime();
-        }
-
-        // TTS
-        const ttsBtn = document.getElementById('tts-btn');
-        if (ttsBtn) {
-            ttsBtn.addEventListener('click', () => {
-                const text = readerContent.innerText;
-                const utterance = new SpeechSynthesisUtterance(text);
-                window.speechSynthesis.speak(utterance);
-            });
-        }
-    }
+    // Reader Page Logic is now handled within reader.html specific script.
 });
 
-async function pollStatus(docId) {
-    const contentDiv = document.getElementById('reader-content');
-    contentDiv.innerText = "Processing OCR... Please wait.";
-
-    const interval = setInterval(async () => {
-        try {
-            const res = await fetch(`/api/documents/${docId}`);
-            const data = await res.json();
-
-            if (data.status === 'completed') {
-                clearInterval(interval);
-                // Fetch text
-                const textRes = await fetch(`/api/documents/${docId}/text`);
-                const textData = await textRes.json();
-                contentDiv.innerText = textData.text;
-                calculateReadingTime();
-            } else if (data.status === 'failed') {
-                clearInterval(interval);
-                contentDiv.innerText = "Processing failed.";
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    }, 2000);
-}
-
-function calculateReadingTime() {
-    const readerContent = document.getElementById('reader-content');
-    // Guard clause: if element doesn't exist, stop.
-    if (!readerContent) return;
-
-    const text = readerContent.innerText;
-    const words = text.trim().split(/\s+/).length;
-    const wpm = 200;
-    const minutes = Math.ceil(words / wpm);
-    const readingTimeSpan = document.getElementById('reading-time');
-    if (readingTimeSpan) {
-        readingTimeSpan.innerText = `Est. reading time: ${minutes} min`;
-    }
-}
 
 // Reading Ruler Logic
 document.addEventListener('DOMContentLoaded', () => {
@@ -146,20 +88,50 @@ document.addEventListener('DOMContentLoaded', () => {
         // Follow mouse inside content
         contentArea.addEventListener('mousemove', (e) => {
             if (rulerEnabled) {
-                // Since ruler is absolute inside #reader-container (parent of contentArea? No, they are siblings or nested)
-                // Wait, I put ruler in #reader-container. contentArea is #page-content.
-                // Let's use #reader-container as the reference frame.
-                const container = document.getElementById('reader-container');
-                const rect = container.getBoundingClientRect();
+                // Ensure we use the page-content as reference
+                const rect = contentArea.getBoundingClientRect();
 
-                // Calculate Y relative to the container top
-                // e.clientY is viewport Y. rect.top is viewport Y of container.
-                // We also need to account for scroll INSIDE the container if it scrolls? 
-                // Usually text page scrolls with window.
-                // If absolute positioned, it moves with scroll. So we just map to the point on the element.
-
+                // Calculate position relative to the content area
                 const relativeY = e.clientY - rect.top;
-                ruler.style.top = `${relativeY}px`;
+
+                // Clamp within bounds (0 to height)
+                const clampedY = Math.max(0, Math.min(relativeY, rect.height));
+
+                // Position relative to the container if needed because of structure
+                // But actually, ruler is child of reading-container which contains page-content?
+                // Wait, in reader.html:
+                // <div id="reader-container" style="position: relative;">
+                //     <div id="page-content" class="page-frame">...</div>
+                //     <div id="reading-ruler" ...></div>
+                // </div>
+                // So ruler is absolute in reader-container.
+                // page-content moves inside reader-container?
+                // Actually they are siblings. page-content usually has margin: 0 auto.
+                // We want the ruler to be ON TOP of page-content visually.
+                // It's probably easier if we check boundaries.
+
+                // Let's set the ruler width/left to match page-content too ?
+                // The user said "ne doit pas depasser la feuille" (must not exceed the sheet).
+
+                ruler.style.width = `${rect.width}px`;
+                ruler.style.left = `${contentArea.offsetLeft}px`;
+
+                // Logic: 
+                // e.clientY is relative to viewport.
+                // We want to place ruler at that Y, but relative to the OffsetParent (reader-container).
+
+                const containerRect = document.getElementById('reader-container').getBoundingClientRect();
+                const offsetY = e.clientY - containerRect.top;
+
+                // Clamp to page-content vertical bounds relative to container
+                const minTop = contentArea.offsetTop;
+                const maxTop = contentArea.offsetTop + contentArea.offsetHeight;
+
+                let finalTop = offsetY;
+                if (finalTop < minTop) finalTop = minTop;
+                if (finalTop > maxTop) finalTop = maxTop;
+
+                ruler.style.top = `${finalTop}px`;
             }
         });
     }

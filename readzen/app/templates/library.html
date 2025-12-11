@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="library-header">
+<div class="header-content" style="margin-bottom: 30px; margin-top: 30px;">
     <h2>Ma Bibliothèque</h2>
-    <a href="/" class="btn">Ajouter un document</a>
+    <a href="/" class="btn btn-primary">
+        <span>+</span> Ajouter un document
+    </a>
 </div>
 
 <div class="library-grid" id="doc-grid">
-    <!-- Documents will be loaded here via JS or rendered by Jinja if passed -->
-    <p>Chargement...</p>
+    <p style="color: var(--color-text-muted);">Chargement de vos lectures...</p>
 </div>
 
 <script>
@@ -19,26 +20,28 @@
             const docs = await res.json();
 
             if (docs.length === 0) {
-                grid.innerHTML = '<p>Aucun document. Commencez par en ajouter un !</p>';
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--color-text-muted);">Aucun document pour le moment. Commencez par en ajouter un !</div>';
                 return;
             }
 
             grid.innerHTML = docs.map(doc => `
             <div class="document-card">
                 <div>
-                    <h3>${doc.filename}</h3>
+                    <div class="document-title" title="${doc.filename}">${doc.filename}</div>
                     <div class="document-meta">
-                        ${new Date(doc.upload_date).toLocaleDateString()} • ${doc.status}
+                        Ajouté le ${new Date(doc.upload_date).toLocaleDateString()}
+                        <br>
+                        <span style="font-size: 0.8em; opacity: 0.8;">${doc.status}</span>
                     </div>
                 </div>
                 <div class="card-actions">
-                    <a href="/reader/${doc.id}" class="btn">Lire</a>
-                    <button class="btn btn-danger" onclick="deleteDocument(${doc.id})">Supprimer</button>
+                    <a href="/reader/${doc.id}" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.9em;">Lire</a>
+                    <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.9em;" onclick="deleteDocument(${doc.id})">Supprimer</button>
                 </div>
             </div>
         `).join('');
         } catch (e) {
-            grid.innerHTML = '<p>Erreur lors du chargement des documents.</p>';
+            grid.innerHTML = '<p style="color: var(--color-danger);">Erreur lors du chargement des documents.</p>';
             console.error(e);
         }
     });
