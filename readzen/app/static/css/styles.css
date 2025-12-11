@@ -282,10 +282,41 @@ body.theme-sepia .main-header {
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.document-card:hover {
+.document-card:hover,
+.document-card.selected {
     transform: translateY(-4px);
     box-shadow: var(--shadow-md);
     border-color: var(--color-primary);
+}
+
+.document-card.selected {
+    background-color: rgba(99, 102, 241, 0.05);
+    /* Subtle highlighting */
+    border-width: 2px;
+    /* Thicker border */
+}
+
+/* Selection Mode */
+.selection-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    display: none;
+}
+
+body.selection-mode .selection-overlay {
+    display: block;
+}
+
+.doc-checkbox {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .document-title {

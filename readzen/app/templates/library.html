@@ -1,11 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="header-content" style="margin-bottom: 30px; margin-top: 30px;">
+<div class="header-content" style="margin-bottom: 30px; margin-top: 30px; flex-wrap: wrap; gap: 10px;">
     <h2>Ma Bibliothèque</h2>
-    <a href="/" class="btn btn-primary">
-        <span>+</span> Ajouter un document
-    </a>
+    <div class="header-actions" style="display: flex; gap: 10px;">
+        <button id="btn-select-mode" class="btn" onclick="toggleSelectionMode()">Sélectionner</button>
+        <button id="btn-delete-all" class="btn btn-danger" style="display: none;" onclick="deleteAllDocuments()">Tout
+            supprimer</button>
+        <button id="btn-delete-selected" class="btn btn-danger" style="display: none;"
+            onclick="deleteSelectedDocuments()">Supprimer la sélection (<span id="selected-count">0</span>)</button>
+        <a href="/" class="btn btn-primary">
+            <span>+</span> Ajouter
+        </a>
+    </div>
 </div>
 
 <div class="library-grid" id="doc-grid">
@@ -25,7 +32,10 @@
             }
 
             grid.innerHTML = docs.map(doc => `
-            <div class="document-card">
+            <div class="document-card" onclick="handleCardClick(event, ${doc.id})">
+                <div class="selection-overlay">
+                    <input type="checkbox" class="doc-checkbox" value="${doc.id}" onchange="updateSelectionCount()">
+                </div>
                 <div>
                     <div class="document-title" title="${doc.filename}">${doc.filename}</div>
                     <div class="document-meta">
@@ -36,7 +46,7 @@
                 </div>
                 <div class="card-actions">
                     <a href="/reader/${doc.id}" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.9em;">Lire</a>
-                    <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.9em;" onclick="deleteDocument(${doc.id})">Supprimer</button>
+                    <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.9em;" onclick="deleteDocument(event, ${doc.id})">Supprimer</button>
                 </div>
             </div>
         `).join('');
@@ -46,20 +56,123 @@
         }
     });
 
-    async function deleteDocument(id) {
+    // --- Selection & Bulk Actions ---
+    let selectionMode = false;
+
+    function toggleSelectionMode() {
+        selectionMode = !selectionMode;
+        document.body.classList.toggle('selection-mode', selectionMode);
+
+        const btn = document.getElementById('btn-select-mode');
+        const deleteSelectedBtn = document.getElementById('btn-delete-selected');
+        const deleteAllBtn = document.getElementById('btn-delete-all');
+
+        if (selectionMode) {
+            btn.innerText = 'Annuler';
+            btn.classList.add('btn-secondary'); // Visual indicator
+            deleteAllBtn.style.display = 'inline-block';
+            // Reset selection when entering? Maybe no.
+        } else {
+            btn.innerText = 'Sélectionner';
+            btn.classList.remove('btn-secondary');
+            deleteAllBtn.style.display = 'none';
+            // Clear selection
+            document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.document-card').forEach(card => card.classList.remove('selected'));
+            updateSelectionCount();
+        }
+    }
+
+    function handleCardClick(event, id) {
+        if (!selectionMode) return;
+
+        // Prevent triggering if clicked on button inside
+        if (event.target.closest('.card-actions') || event.target.closest('a')) return;
+
+        const checkbox = event.currentTarget.querySelector('.doc-checkbox');
+        const card = event.currentTarget;
+
+        if (event.target !== checkbox) {
+            checkbox.checked = !checkbox.checked;
+        }
+
+        if (checkbox.checked) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+
+        updateSelectionCount();
+    }
+
+    function updateSelectionCount() {
+        const count = document.querySelectorAll('.doc-checkbox:checked').length;
+        document.getElementById('selected-count').innerText = count;
+
+        const deleteSelectedBtn = document.getElementById('btn-delete-selected');
+        if (count > 0) {
+            deleteSelectedBtn.style.display = 'inline-flex';
+        } else {
+            deleteSelectedBtn.style.display = 'none';
+        }
+    }
+
+    async function deleteDocument(event, id) {
+        if (event) event.stopPropagation();
         if (!confirm('Etes-vous sûr de vouloir supprimer ce document ?')) return;
 
         try {
-            const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                window.location.reload();
-            } else {
-                alert('Erreur lors de la suppression.');
-            }
+            await apiDelete(id);
+            window.location.reload();
+        } catch (e) {
+            alert('Erreur lors de la suppression.');
+        }
+    }
+
+    async function deleteSelectedDocuments() {
+        const checked = document.querySelectorAll('.doc-checkbox:checked');
+        if (checked.length === 0) return;
+
+        if (!confirm(`Supprimer ${checked.length} documents ? Cette action est irréversible.`)) return;
+
+        const ids = Array.from(checked).map(cb => cb.value);
+
+        // Parallel Delete
+        try {
+            await Promise.all(ids.map(id => apiDelete(id)));
+            window.location.reload();
         } catch (e) {
             console.error(e);
-            alert('Erreur réseau.');
+            alert('Certaines suppressions ont échoué.');
+            window.location.reload(); // Reload to show what remains
         }
+    }
+
+    async function deleteAllDocuments() {
+        const all = document.querySelectorAll('.doc-checkbox');
+        if (all.length === 0) {
+            alert('Aucun document à supprimer.');
+            return;
+        }
+
+        if (!confirm('ATTENTION: Voulez-vous vraiment TOUT supprimer ?')) return;
+
+        const ids = Array.from(all).map(cb => cb.value);
+
+        try {
+            await Promise.all(ids.map(id => apiDelete(id)));
+            window.location.reload();
+        } catch (e) {
+            console.error(e);
+            alert('Erreur lors de la suppression massive.');
+            window.location.reload();
+        }
+    }
+
+    // Helper for API call
+    async function apiDelete(id) {
+        const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
     }
 </script>
 
