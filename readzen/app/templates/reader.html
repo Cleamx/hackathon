@@ -4,10 +4,34 @@
 <div class="toolbar">
     <button class="btn" id="theme-toggle">Theme</button>
     <button class="btn" id="font-toggle">Police</button>
+
+    <div class="slider-group" style="display: flex; align-items: center; gap: 5px; margin: 0 10px;">
+        <span style="font-size: 0.8rem">A-</span>
+        <input type="range" id="font-size-slider" min="14" max="32" value="20" onchange="updateFontSize(this.value)"
+            title="Taille de la police">
+        <span style="font-size: 0.8rem">A+</span>
+    </div>
+
+    <!-- New Spacing Controls -->
+    <div class="slider-group"
+        style="display: flex; align-items: center; gap: 5px; margin: 0 10px; border-left: 1px solid #ddd; padding-left: 10px;">
+        <span style="font-size: 0.8rem">↔</span>
+        <input type="range" id="letter-spacing-slider" min="0" max="5" step="0.5" value="0"
+            onchange="updateLetterSpacing(this.value)" title="Espacement caractères">
+
+        <span style="font-size: 0.8rem; margin-left: 8px;">↕</span>
+        <input type="range" id="line-height-slider" min="1.2" max="3" step="0.2" value="1.8"
+            onchange="updateLineHeight(this.value)" title="Interligne">
+    </div>
+
     <button class="btn" id="tts-btn">Lecture Vocale</button>
     <button class="btn" id="ruler-toggle">Guide</button>
+    <button class="btn" id="fullscreen-btn" title="Plein Écran">⛶</button>
     <span id="reading-time" style="margin-left: auto; align-self: center; font-size: 0.9rem;"></span>
-    <span style="font-size: 0.8rem; opacity: 0.5;">v10</span>
+</div>
+
+<div id="tags-container" class="tags-row" style="padding: 10px 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <!-- Tags will be injected here -->
 </div>
 
 <div id="reader-container">
@@ -15,12 +39,13 @@
         Loading...
     </div>
     <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
-</div>
 
-<div class="pagination-controls" id="pagination-controls" style="display: none;">
-    <button class="btn" id="prev-page" disabled>Previous</button>
-    <span id="page-indicator">Page 1 / ?</span>
-    <button class="btn" id="next-page">Next</button>
+    <div class="pagination-controls" id="pagination-controls"
+        style="display: none; justify-content: center; gap: 20px; align-items: center; margin-top: auto; padding-top: 20px;">
+        <button class="btn" id="prev-page" disabled>Previous</button>
+        <span id="page-indicator">Page 1 / ?</span>
+        <button class="btn" id="next-page">Next</button>
+    </div>
 </div>
 
 <script>
@@ -50,6 +75,23 @@
                 const text = document.getElementById('page-content').innerText;
                 const utterance = new SpeechSynthesisUtterance(text);
                 window.speechSynthesis.speak(utterance);
+            });
+        }
+
+        // Fullscreen
+        const fsBtn = document.getElementById('fullscreen-btn');
+        if (fsBtn) {
+            fsBtn.addEventListener('click', () => {
+                const container = document.getElementById('reader-container');
+                if (!document.fullscreenElement) {
+                    container.requestFullscreen().catch(e => {
+                        console.error(`Error attempting to enable fullscreen: ${e.message}`);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
             });
         }
     });
@@ -157,6 +199,163 @@
         const readingTimeSpan = document.getElementById('reading-time');
         if (readingTimeSpan) {
             readingTimeSpan.innerText = `${minutes} min read (page)`;
+        }
+    }
+
+    // --- New Features (Zoom, Tags, Resume) ---
+
+    function updateFontSize(size) {
+        const content = document.getElementById('page-content');
+        if (content) {
+            content.style.fontSize = `${size}px`;
+            // Save preference
+            localStorage.setItem('readzen_font_size', size);
+        }
+    }
+
+    function updateLetterSpacing(val) {
+        const content = document.getElementById('page-content');
+        if (content) {
+            content.style.letterSpacing = `${val}px`;
+            localStorage.setItem('readzen_letter_spacing', val);
+        }
+    }
+
+    function updateLineHeight(val) {
+        const content = document.getElementById('page-content');
+        if (content) {
+            content.style.lineHeight = val;
+            const paragraphs = content.querySelectorAll('p');
+            paragraphs.forEach(p => p.style.lineHeight = val); // Force on P tags to override CSS
+            localStorage.setItem('readzen_line_height', val);
+        }
+    }
+
+    function extractKeywords(text) {
+        // Simple stop-word filter (French)
+        const stopWords = new Set(['le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'à', 'en', 'il', 'elle', 'que', 'qui', 'ce', 'se', 'dans', 'pour', 'sur', 'au', 'aux', 'ne', 'pas', 'plus', 'par', 'avec', 'son', 'sa', 'ses', 'est', 'sont']);
+        const words = text.toLowerCase().match(/\b[a-zà-ÿ]{4,}\b/g) || [];
+
+        const counts = {};
+        words.forEach(w => {
+            if (!stopWords.has(w)) {
+                counts[w] = (counts[w] || 0) + 1;
+            }
+        });
+
+        // Top 5
+        const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+        const container = document.getElementById('tags-container');
+        if (container) {
+            container.innerHTML = sorted.map(([word, count]) =>
+                `<span class="tag-chip" style="background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">#${word}</span>`
+            ).join('');
+        }
+    }
+
+    function saveProgress() {
+        const progress = {
+            docId: DOC_ID,
+            page: currentPage,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(`progress_${DOC_ID}`, JSON.stringify(progress));
+    }
+
+    function loadProgress() {
+        const saved = localStorage.getItem(`progress_${DOC_ID}`);
+        if (saved) {
+            const data = JSON.parse(saved);
+            // Verify timestamp if needed, for now just load page
+            if (data.page && data.page < pages.length) {
+                currentPage = data.page;
+                console.log("Resuming at page " + currentPage);
+            }
+        }
+
+        // Restore font size
+        const savedSize = localStorage.getItem('readzen_font_size');
+        if (savedSize) {
+            const slider = document.getElementById('font-size-slider');
+            if (slider) slider.value = savedSize;
+            updateFontSize(savedSize);
+        }
+
+        // Restore Letter Spacing
+        const savedSpacing = localStorage.getItem('readzen_letter_spacing');
+        if (savedSpacing) {
+            const slider = document.getElementById('letter-spacing-slider');
+            if (slider) slider.value = savedSpacing;
+            updateLetterSpacing(savedSpacing);
+        }
+
+        // Restore Line Height
+        const savedLine = localStorage.getItem('readzen_line_height');
+        if (savedLine) {
+            const slider = document.getElementById('line-height-slider');
+            if (slider) slider.value = savedLine;
+            updateLineHeight(savedLine);
+        }
+    }
+
+    // Hook into renderPage for Keywords and Save Logic
+    const oldRender = renderPage;
+    renderPage = function () {
+        if (pages.length === 0) return;
+
+        // Call original
+        const contentDiv = document.getElementById('page-content');
+        // We don't need to set innerText since colorizeText will overwrite innerHTML
+        // But we MUST pass the text to colorizeText to update its cache
+        const text = pages[currentPage];
+        accessibility.colorizeText(text);
+
+        const ind = document.getElementById('page-indicator');
+        if (ind) ind.innerText = `Page ${currentPage + 1} / ${pages.length}`;
+        const prev = document.getElementById('prev-page');
+        if (prev) prev.disabled = currentPage === 0;
+        const next = document.getElementById('next-page');
+        if (next) next.disabled = currentPage === pages.length - 1;
+        calculateReadingTime(pages[currentPage]);
+        window.scrollTo(0, 0);
+
+        // New Logic
+        extractKeywords(pages[currentPage]);
+        saveProgress();
+
+        // Re-apply styles that might be reset by InnerText/HTML replacement
+        const savedLine = localStorage.getItem('readzen_line_height');
+        if (savedLine) updateLineHeight(savedLine);
+        const savedSpacing = localStorage.getItem('readzen_letter_spacing');
+        if (savedSpacing) updateLetterSpacing(savedSpacing);
+    };
+
+    // Override loadPages to trigger resume loading
+    const oldLoad = loadPages;
+    loadPages = async function () {
+        try {
+            const res = await fetch(`/api/documents/${DOC_ID}/text`);
+            const data = await res.json();
+
+            if (data.pages && data.pages.length > 0) {
+                pages = data.pages;
+            } else if (data.text) {
+                pages = [data.text];
+            } else {
+                pages = ["No text content found."];
+            }
+
+            // Attempt resume
+            loadProgress();
+
+            renderPage();
+            const controls = document.getElementById('pagination-controls');
+            if (controls) controls.style.display = 'flex';
+        } catch (e) {
+            console.error(e);
+            const contentDiv = document.getElementById('page-content');
+            if (contentDiv) contentDiv.innerText = "Error loading text.";
         }
     }
 </script>

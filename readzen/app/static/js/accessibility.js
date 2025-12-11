@@ -226,15 +226,16 @@ class AccessibilityManager {
 
     // --- Text Processing Core ---
 
-    colorizeText() {
+    colorizeText(newText = null) {
         const container = document.getElementById('page-content');
         if (!container) return;
 
-        // Restore original text first to prevent nesting hell
-        // We rely on 'original-text' logic or just grabbing innerText if valid.
-        // Assuming the container only has text paragraphs from the reader load.
-        // Ideally we should cache the clean text. 
-        if (!this.cleanText) {
+        // Update cleanText if new content is provided (e.g. pagination)
+        if (newText) {
+            this.cleanText = newText;
+        }
+        // Fallback: If no cache exists, try to grab from DOM
+        else if (!this.cleanText) {
             this.cleanText = container.innerText;
         }
 
@@ -245,10 +246,17 @@ class AccessibilityManager {
         const paragraphs = this.cleanText.split('\n\n');
 
         html = paragraphs.map(p => {
+            // Check for Title marker (from backend)
+            if (p.startsWith('### ')) {
+                const titleText = p.replace('### ', '');
+                return `<h2 class="chapter-title">${this.processWord(titleText)}</h2>`;
+            }
+
             // 1. Process words
             const words = p.split(/\s+/);
-            return words.map(word => this.processWord(word)).join(' ');
-        }).join('<br><br>');
+            const content = words.map(word => this.processWord(word)).join(' ');
+            return `<p>${content}</p>`; // Wrap in P tags for better spacing
+        }).join('');
 
         container.innerHTML = html;
     }
@@ -294,9 +302,12 @@ class AccessibilityManager {
         // Phonemes
         if (this.preferences.phonemesEnabled) {
             for (const [mid, color] of Object.entries(this.preferences.activePhonemes)) {
-                // Regex for phoneme (case insensitive)
-                const regex = new RegExp(`(${mid})`, 'gi');
-                res = res.replace(regex, `<span class="phoneme" style="color: ${color}">$1</span>`);
+                // Regex: Match phoneme only if NOT inside an HTML tag.
+                // Pattern: (mid) followed by NO closing bracket '>' before an opening bracket '<'.
+                const regex = new RegExp(`(${mid})(?![^<]*>)`, 'gi');
+
+                // Use a safe class name 'dys-ph' to avoid recursive matching on 'phoneme'
+                res = res.replace(regex, `<span class="dys-ph" style="color: ${color}">$1</span>`);
             }
         }
 
