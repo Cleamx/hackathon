@@ -237,23 +237,42 @@ class AccessibilityManager {
             this.cleanText = container.innerText;
         }
 
-        // 1. Render Markdown to HTML using marked.js
-        // Configure marked to handle breaks if needed
-        if (typeof marked !== 'undefined') {
-            container.innerHTML = marked.parse(this.cleanText);
+        // Le contenu peut être du HTML brut (avec balises <p>, <h2>, etc.)
+        // ou du Markdown. On détecte et traite en conséquence.
+        
+        const content = this.cleanText;
+        
+        // Vérifier si le contenu contient déjà des balises HTML
+        const hasHtmlTags = /<(p|h[1-6]|div|span|strong|em|br)[^>]*>/i.test(content);
+        
+        if (hasHtmlTags) {
+            // Le contenu est déjà en HTML, l'injecter directement
+            container.innerHTML = content;
+            console.log('HTML content injected directly');
+        } else if (typeof marked !== 'undefined') {
+            // Le contenu est en Markdown, le parser
+            try {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    headerIds: false,
+                    mangle: false
+                });
+                container.innerHTML = marked.parse(content);
+                console.log('Markdown parsed successfully');
+            } catch (e) {
+                console.error('Marked parsing error:', e);
+                container.innerText = content;
+            }
         } else {
-            // Fallback if marked failed to load
-            container.innerText = this.cleanText;
+            // Fallback: afficher en texte brut
+            container.innerText = content;
         }
 
         // 2. Apply Accessibility Transformations to Text Nodes only
         this.applyAccessibilityToContainer(container);
 
         // 3. Post-Process: Try to merge orphan images into tables
-        // Heuristic: If we see a table, then look at subsequent elements. 
-        // If we see an image, checks if the table has "empty" cells or cells with "Ref" that might need an image.
-        // Simplified: Inspect table rows. If a cell mentions "Figure" or "Image" or is just a "Ref" column, 
-        // pull the next available image from the DOM into it.
         this.embedImagesInTables(container);
     }
 

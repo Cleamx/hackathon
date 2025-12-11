@@ -415,26 +415,102 @@ body.selection-mode .selection-overlay {
 .page-frame {
     background-color: var(--color-surface);
     color: var(--color-text-main);
-    padding: 40px 60px;
-    /* Reduced padding */
-    margin: 0 auto 60px;
-    max-width: 1000px;
-    /* Increased width */
-    min-height: 80vh;
-    box-shadow: var(--shadow-lg);
+    padding: 50px 70px;
+    margin: 0 auto 40px;
+    max-width: 800px;
+    min-height: auto;
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.05);
     border-radius: 2px;
-    /* Paper like */
     font-family: var(--font-reader);
-    font-size: 20px;
-    line-height: 1.8;
+    font-size: 18px;
+    line-height: 1.9;
     position: relative;
-    /* transition: none; Optimize reading perfs */
+    text-align: left;
+    /* Contenir le texte */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    /* Aspect page A4 */
+    aspect-ratio: auto;
+    border-left: 1px solid rgba(0,0,0,0.03);
+    border-right: 1px solid rgba(0,0,0,0.03);
 }
 
 .read-word {
     padding: 2px 0;
     border-radius: 2px;
     transition: background-color 0.1s;
+    display: inline;
+}
+
+/* Contenu de page - styles pour le texte */
+.page-frame p {
+    margin-bottom: 1em;
+    text-align: left;
+    text-indent: 0;
+}
+
+.page-frame h1, .page-frame h2 {
+    text-align: center;
+    margin: 1.5em 0 1em;
+    font-weight: 600;
+    color: var(--color-text-main);
+    border-bottom: none;
+    padding-bottom: 0.5em;
+    font-size: 1.3em;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.page-frame h3 {
+    text-align: center;
+    margin: 1.2em 0 0.8em;
+    font-weight: 600;
+    font-size: 1.15em;
+    color: var(--color-text-main);
+}
+
+.page-frame h4 {
+    margin: 1em 0 0.6em;
+    font-weight: 600;
+    font-size: 1.05em;
+    color: var(--color-text-main);
+}
+
+.page-frame strong {
+    font-weight: 600;
+}
+
+.page-frame ul, .page-frame ol {
+    margin: 1em 0;
+    padding-left: 2em;
+}
+
+.page-frame li {
+    margin-bottom: 0.5em;
+}
+
+/* Texte préformaté / code */
+.page-frame pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+    font-family: inherit;
+    margin: 0;
+    border: none;
+}
+
+/* Gérer les longues lignes */
+.page-frame * {
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .word-active {
@@ -589,6 +665,12 @@ input[type=range] {
     transform: none;
 }
 
+.btn-icon.active {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .page-frame {
@@ -605,4 +687,64 @@ input[type=range] {
     .hero-title {
         font-size: 2rem;
     }
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+    margin: 0 auto;
+    max-width: 800px;
+}
+
+.pagination-controls .btn {
+    min-width: 120px;
+}
+
+#page-indicator {
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Style de page comme un livre */
+.page-frame {
+    /* Effet de papier avec ombre de livre */
+    box-shadow: 
+        0 1px 3px rgba(0,0,0,0.08),
+        0 4px 6px rgba(0,0,0,0.04),
+        0 10px 20px rgba(0,0,0,0.04),
+        inset 0 0 80px rgba(0,0,0,0.01);
+}
+
+/* Numéro de page en bas */
+.page-frame::after {
+    content: "";
+    display: block;
+    height: 20px;
+}
+
+/* Mode thème sombre */
+body.theme-dark .page-frame {
+    box-shadow: 
+        0 1px 3px rgba(0,0,0,0.3),
+        0 4px 6px rgba(0,0,0,0.2),
+        0 10px 20px rgba(0,0,0,0.15);
+}
+
+/* Mode sépia */
+body.theme-sepia .page-frame {
+    background-color: #FDF6E3;
+    box-shadow: 
+        0 1px 3px rgba(139,90,43,0.1),
+        0 4px 6px rgba(139,90,43,0.08),
+        0 10px 20px rgba(139,90,43,0.05),
+        inset 0 0 60px rgba(139,90,43,0.02);
 }

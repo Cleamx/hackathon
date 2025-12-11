@@ -36,6 +36,38 @@
                 onchange="updateLineHeight(this.value)" title="Interligne">
         </div>
 
+        <!-- Contrôles d'alignement -->
+        <div class="slider-group" style="border-left: 1px solid var(--color-border); padding-left: 10px; gap: 4px;">
+            <button class="btn-icon" id="align-left" title="Aligner à gauche" onclick="setTextAlign('left')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="15" y2="12"></line>
+                    <line x1="3" y1="18" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <button class="btn-icon" id="align-center" title="Centrer" onclick="setTextAlign('center')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="6" y1="12" x2="18" y2="12"></line>
+                    <line x1="4" y1="18" x2="20" y2="18"></line>
+                </svg>
+            </button>
+            <button class="btn-icon active" id="align-justify" title="Justifier" onclick="setTextAlign('justify')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <button class="btn-icon" id="align-right" title="Aligner à droite" onclick="setTextAlign('right')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="9" y1="12" x2="21" y2="12"></line>
+                    <line x1="6" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
         <div style="display: flex; flex-direction: column; align-items: center;">
             <div class="slider-group" style="padding: 4px; gap: 0;">
                 <button class="btn-icon" id="tts-play" title="Lecture">
@@ -355,10 +387,10 @@
         if (pages.length === 0) return;
 
         const contentDiv = document.getElementById('page-content');
-        if (contentDiv) contentDiv.innerText = pages[currentPage];
-
-        // Update Accessibility (Coloring)
-        accessibility.colorizeText();
+        const pageText = pages[currentPage];
+        
+        // Passer le texte markdown à colorizeText qui va le parser avec marked
+        accessibility.colorizeText(pageText);
 
         // Update Controls
         const ind = document.getElementById('page-indicator');
@@ -371,7 +403,7 @@
         if (next) next.disabled = currentPage === pages.length - 1;
 
         // Reading Time Update
-        calculateReadingTime(pages[currentPage]);
+        calculateReadingTime(pageText);
 
         // Scroll to top
         window.scrollTo(0, 0);
@@ -469,6 +501,29 @@
         }
     }
 
+    function setTextAlign(align) {
+        const content = document.getElementById('page-content');
+        if (content) {
+            // Appliquer l'alignement à tous les paragraphes et éléments de texte
+            const elements = content.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+            elements.forEach(el => {
+                el.style.textAlign = align;
+            });
+            // Aussi sur le conteneur principal
+            content.style.textAlign = align;
+            
+            // Mettre à jour les boutons actifs
+            document.querySelectorAll('#align-left, #align-center, #align-justify, #align-right').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.getElementById(`align-${align}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            // Sauvegarder la préférence
+            localStorage.setItem('readzen_text_align', align);
+        }
+    }
+
     function extractKeywords(text) {
         // Simple stop-word filter (French)
         const stopWords = new Set(['le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'à', 'en', 'il', 'elle', 'que', 'qui', 'ce', 'se', 'dans', 'pour', 'sur', 'au', 'aux', 'ne', 'pas', 'plus', 'par', 'avec', 'son', 'sa', 'ses', 'est', 'sont']);
@@ -535,6 +590,12 @@
             if (slider) slider.value = savedLine;
             updateLineHeight(savedLine);
         }
+
+        // Restore Text Alignment
+        const savedAlign = localStorage.getItem('readzen_text_align');
+        if (savedAlign) {
+            setTextAlign(savedAlign);
+        }
     }
 
     // Hook into renderPage for Keywords and Save Logic
@@ -567,6 +628,8 @@
         if (savedLine) updateLineHeight(savedLine);
         const savedSpacing = localStorage.getItem('readzen_letter_spacing');
         if (savedSpacing) updateLetterSpacing(savedSpacing);
+        const savedAlign = localStorage.getItem('readzen_text_align');
+        if (savedAlign) setTextAlign(savedAlign);
     };
 
     // Override loadPages to trigger resume loading
