@@ -239,12 +239,12 @@ class AccessibilityManager {
 
         // Le contenu peut être du HTML brut (avec balises <p>, <h2>, etc.)
         // ou du Markdown. On détecte et traite en conséquence.
-        
+
         const content = this.cleanText;
-        
+
         // Vérifier si le contenu contient déjà des balises HTML
         const hasHtmlTags = /<(p|h[1-6]|div|span|strong|em|br)[^>]*>/i.test(content);
-        
+
         if (hasHtmlTags) {
             // Le contenu est déjà en HTML, l'injecter directement
             container.innerHTML = content;
@@ -395,7 +395,7 @@ class AccessibilityManager {
             const processedHTML = words.map(w => {
                 // If whitespace, return as is
                 if (/^\s+$/.test(w)) return w;
-                return this.processWord(w);
+                return `<span class="read-word">${this.processWord(w)}</span>`;
             }).join('');
 
             // Create a temp container to parse the new HTML

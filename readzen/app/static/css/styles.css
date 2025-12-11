@@ -419,7 +419,7 @@ body.selection-mode .selection-overlay {
     margin: 0 auto 40px;
     max-width: 800px;
     min-height: auto;
-    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.05);
     border-radius: 2px;
     font-family: var(--font-reader);
     font-size: 18px;
@@ -434,8 +434,8 @@ body.selection-mode .selection-overlay {
     -webkit-hyphens: auto;
     /* Aspect page A4 */
     aspect-ratio: auto;
-    border-left: 1px solid rgba(0,0,0,0.03);
-    border-right: 1px solid rgba(0,0,0,0.03);
+    border-left: 1px solid rgba(0, 0, 0, 0.03);
+    border-right: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .read-word {
@@ -452,7 +452,8 @@ body.selection-mode .selection-overlay {
     text-indent: 0;
 }
 
-.page-frame h1, .page-frame h2 {
+.page-frame h1,
+.page-frame h2 {
     text-align: center;
     margin: 1.5em 0 1em;
     font-weight: 600;
@@ -483,7 +484,8 @@ body.selection-mode .selection-overlay {
     font-weight: 600;
 }
 
-.page-frame ul, .page-frame ol {
+.page-frame ul,
+.page-frame ol {
     margin: 1em 0;
     padding-left: 2em;
 }
@@ -717,11 +719,11 @@ input[type=range] {
 /* Style de page comme un livre */
 .page-frame {
     /* Effet de papier avec ombre de livre */
-    box-shadow: 
-        0 1px 3px rgba(0,0,0,0.08),
-        0 4px 6px rgba(0,0,0,0.04),
-        0 10px 20px rgba(0,0,0,0.04),
-        inset 0 0 80px rgba(0,0,0,0.01);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.08),
+        0 4px 6px rgba(0, 0, 0, 0.04),
+        0 10px 20px rgba(0, 0, 0, 0.04),
+        inset 0 0 80px rgba(0, 0, 0, 0.01);
 }
 
 /* Numéro de page en bas */
@@ -733,18 +735,18 @@ input[type=range] {
 
 /* Mode thème sombre */
 body.theme-dark .page-frame {
-    box-shadow: 
-        0 1px 3px rgba(0,0,0,0.3),
-        0 4px 6px rgba(0,0,0,0.2),
-        0 10px 20px rgba(0,0,0,0.15);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        0 4px 6px rgba(0, 0, 0, 0.2),
+        0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* Mode sépia */
 body.theme-sepia .page-frame {
     background-color: #FDF6E3;
-    box-shadow: 
-        0 1px 3px rgba(139,90,43,0.1),
-        0 4px 6px rgba(139,90,43,0.08),
-        0 10px 20px rgba(139,90,43,0.05),
-        inset 0 0 60px rgba(139,90,43,0.02);
+    box-shadow:
+        0 1px 3px rgba(139, 90, 43, 0.1),
+        0 4px 6px rgba(139, 90, 43, 0.08),
+        0 10px 20px rgba(139, 90, 43, 0.05),
+        inset 0 0 60px rgba(139, 90, 43, 0.02);
 }

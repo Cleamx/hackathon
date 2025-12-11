@@ -388,7 +388,7 @@
 
         const contentDiv = document.getElementById('page-content');
         const pageText = pages[currentPage];
-        
+
         // Passer le texte markdown à colorizeText qui va le parser avec marked
         accessibility.colorizeText(pageText);
 
@@ -511,14 +511,14 @@
             });
             // Aussi sur le conteneur principal
             content.style.textAlign = align;
-            
+
             // Mettre à jour les boutons actifs
             document.querySelectorAll('#align-left, #align-center, #align-justify, #align-right').forEach(btn => {
                 btn.classList.remove('active');
             });
             const activeBtn = document.getElementById(`align-${align}`);
             if (activeBtn) activeBtn.classList.add('active');
-            
+
             // Sauvegarder la préférence
             localStorage.setItem('readzen_text_align', align);
         }
