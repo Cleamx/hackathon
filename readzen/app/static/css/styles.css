@@ -750,3 +750,32 @@ body.theme-sepia .page-frame {
         0 10px 20px rgba(139, 90, 43, 0.05),
         inset 0 0 60px rgba(139, 90, 43, 0.02);
 }
+
+/* Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Loading page message */
+#page-content.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--color-text-muted);
+    font-style: italic;
+}

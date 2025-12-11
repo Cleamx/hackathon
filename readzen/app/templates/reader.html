@@ -124,15 +124,21 @@
     const DOC_ID = "{{ document.id }}";
     const INITIAL_STATUS = "{{ document.status }}";
 
-    let pages = [];
+    let pages = [];          // Contenu des pages (null = pas encore chargé)
+    let pageCount = 0;       // Nombre total de pages
     let currentPage = 0;
+    let loadingPage = null;  // Page en cours de chargement
 
     document.addEventListener('DOMContentLoaded', () => {
         accessibility.init();
+        
+        console.log("DOMContentLoaded - INITIAL_STATUS:", INITIAL_STATUS, "DOC_ID:", DOC_ID);
 
         if (INITIAL_STATUS === 'completed') {
+            console.log("Document already completed, calling loadPages()");
             loadPages();
         } else {
+            console.log("Document not completed, starting trackOCRStatus");
             trackOCRStatus(DOC_ID);
         }
 
@@ -361,59 +367,194 @@
 
     async function loadPages() {
         try {
+            console.log("Loading pages for document", DOC_ID);
             const res = await fetch(`/api/documents/${DOC_ID}/text`);
             const data = await res.json();
+            
+            console.log("API response:", data);
 
+            // Déterminer les pages et leur nombre
             if (data.pages && data.pages.length > 0) {
                 pages = data.pages;
+                pageCount = data.page_count || data.pages.length;
             } else if (data.text) {
                 pages = [data.text];
+                pageCount = 1;
             } else {
                 pages = ["No text content found."];
+                pageCount = 1;
             }
+            
+            console.log("Page count:", pageCount);
+            console.log("Pages loaded:", pages.length);
 
-            currentPage = 0;
-            renderPage();
+            // Attempt resume from saved progress
+            loadProgress();
+
+            await renderPage();
+            
+            // Précharger la page suivante si elle existe
+            if (pageCount > 1 && currentPage < pageCount - 1) {
+                console.log("Preloading next page...");
+                preloadPage(currentPage + 1);
+            }
+            
             const controls = document.getElementById('pagination-controls');
             if (controls) controls.style.display = 'flex';
         } catch (e) {
-            console.error(e);
+            console.error("Error in loadPages:", e);
             const contentDiv = document.getElementById('page-content');
             if (contentDiv) contentDiv.innerText = "Error loading text.";
         }
     }
 
-    function renderPage() {
-        if (pages.length === 0) return;
+    async function loadPage(pageNumber) {
+        /**
+         * Charge une page spécifique depuis l'API.
+         * Retourne le contenu HTML de la page.
+         */
+        console.log(`loadPage called for page ${pageNumber}`);
+        
+        if (pageNumber < 0 || pageNumber >= pageCount) {
+            console.log(`Page ${pageNumber} out of range (0-${pageCount-1})`);
+            return null;
+        }
+        
+        // Si déjà chargée, retourner le contenu
+        if (pages[pageNumber]) {
+            console.log(`Page ${pageNumber} already loaded, returning cached content`);
+            return pages[pageNumber];
+        }
+        
+        // Éviter les chargements en double
+        if (loadingPage === pageNumber) {
+            console.log(`Page ${pageNumber} is already being loaded, waiting...`);
+            // Attendre que le chargement en cours soit terminé
+            while (loadingPage === pageNumber) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return pages[pageNumber];
+        }
+        
+        loadingPage = pageNumber;
+        
+        try {
+            console.log(`Fetching page ${pageNumber} from API...`);
+            const res = await fetch(`/api/documents/${DOC_ID}/page/${pageNumber}`);
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error(`Failed to load page ${pageNumber}: ${res.status} - ${errorText}`);
+                throw new Error(`Failed to load page ${pageNumber}`);
+            }
+            
+            const data = await res.json();
+            pages[pageNumber] = data.content;
+            console.log(`Page ${pageNumber} loaded successfully (cached: ${data.cached}, ${data.content?.length || 0} chars)`);
+            
+            return data.content;
+        } catch (e) {
+            console.error(`Error loading page ${pageNumber}:`, e);
+            return null;
+        } finally {
+            loadingPage = null;
+        }
+    }
+
+    function preloadPage(pageNumber) {
+        /**
+         * Précharge une page en arrière-plan sans bloquer.
+         */
+        console.log(`preloadPage called for page ${pageNumber}`);
+        if (pageNumber < 0 || pageNumber >= pageCount) {
+            console.log(`Cannot preload page ${pageNumber}: out of range`);
+            return;
+        }
+        if (pages[pageNumber]) {
+            console.log(`Page ${pageNumber} already loaded, no need to preload`);
+            return;
+        }
+        
+        // Charger silencieusement (sans await)
+        console.log(`Starting background load for page ${pageNumber}`);
+        loadPage(pageNumber);
+    }
+
+    async function renderPage() {
+        console.log(`renderPage called, currentPage=${currentPage}, pageCount=${pageCount}`);
+        
+        if (pageCount === 0) {
+            console.log("No pages to render");
+            return;
+        }
 
         const contentDiv = document.getElementById('page-content');
-        const pageText = pages[currentPage];
+        let pageText = pages[currentPage];
+        
+        console.log(`Current page ${currentPage} content: ${pageText ? 'loaded' : 'not loaded'}`);
+        
+        // Si la page n'est pas encore chargée, la charger
+        if (!pageText) {
+            contentDiv.innerHTML = '<div class="loading-spinner"></div> Chargement de la page...';
+            console.log(`Loading page ${currentPage}...`);
+            pageText = await loadPage(currentPage);
+            
+            if (!pageText) {
+                contentDiv.innerText = "Erreur lors du chargement de la page.";
+                return;
+            }
+        }
 
-        // Passer le texte markdown à colorizeText qui va le parser avec marked
+        // Passer le texte HTML à colorizeText
         accessibility.colorizeText(pageText);
 
         // Update Controls
         const ind = document.getElementById('page-indicator');
-        if (ind) ind.innerText = `Page ${currentPage + 1} / ${pages.length}`;
+        if (ind) ind.innerText = `Page ${currentPage + 1} / ${pageCount}`;
 
         const prev = document.getElementById('prev-page');
         if (prev) prev.disabled = currentPage === 0;
 
         const next = document.getElementById('next-page');
-        if (next) next.disabled = currentPage === pages.length - 1;
+        if (next) next.disabled = currentPage >= pageCount - 1;
+        
+        console.log(`Navigation: prev disabled=${currentPage === 0}, next disabled=${currentPage >= pageCount - 1}`);
 
         // Reading Time Update
         calculateReadingTime(pageText);
 
+        // Extract keywords for tags
+        extractKeywords(pageText);
+        
+        // Save reading progress
+        saveProgress();
+
         // Scroll to top
         window.scrollTo(0, 0);
+        
+        // Re-apply styles that might be reset by innerHTML replacement
+        const savedLine = localStorage.getItem('readzen_line_height');
+        if (savedLine) updateLineHeight(savedLine);
+        const savedSpacing = localStorage.getItem('readzen_letter_spacing');
+        if (savedSpacing) updateLetterSpacing(savedSpacing);
+        const savedAlign = localStorage.getItem('readzen_text_align');
+        if (savedAlign) setTextAlign(savedAlign);
+        
+        // Précharger la page suivante
+        if (currentPage < pageCount - 1) {
+            preloadPage(currentPage + 1);
+        }
     }
 
-    function changePage(delta) {
+    async function changePage(delta) {
+        console.log(`changePage called with delta=${delta}, currentPage=${currentPage}, pageCount=${pageCount}`);
         const newPage = currentPage + delta;
-        if (newPage >= 0 && newPage < pages.length) {
+        if (newPage >= 0 && newPage < pageCount) {
+            console.log(`Changing to page ${newPage}`);
             currentPage = newPage;
-            renderPage();
+            await renderPage();
+        } else {
+            console.log(`Cannot change to page ${newPage}: out of range`);
         }
     }
 
@@ -561,7 +702,7 @@
         if (saved) {
             const data = JSON.parse(saved);
             // Verify timestamp if needed, for now just load page
-            if (data.page && data.page < pages.length) {
+            if (data.page && data.page < pageCount) {
                 currentPage = data.page;
                 console.log("Resuming at page " + currentPage);
             }
@@ -598,66 +739,5 @@
         }
     }
 
-    // Hook into renderPage for Keywords and Save Logic
-    const oldRender = renderPage;
-    renderPage = function () {
-        if (pages.length === 0) return;
-
-        // Call original
-        const contentDiv = document.getElementById('page-content');
-        // We don't need to set innerText since colorizeText will overwrite innerHTML
-        // But we MUST pass the text to colorizeText to update its cache
-        const text = pages[currentPage];
-        accessibility.colorizeText(text);
-
-        const ind = document.getElementById('page-indicator');
-        if (ind) ind.innerText = `Page ${currentPage + 1} / ${pages.length}`;
-        const prev = document.getElementById('prev-page');
-        if (prev) prev.disabled = currentPage === 0;
-        const next = document.getElementById('next-page');
-        if (next) next.disabled = currentPage === pages.length - 1;
-        calculateReadingTime(pages[currentPage]);
-        window.scrollTo(0, 0);
-
-        // New Logic
-        extractKeywords(pages[currentPage]);
-        saveProgress();
-
-        // Re-apply styles that might be reset by InnerText/HTML replacement
-        const savedLine = localStorage.getItem('readzen_line_height');
-        if (savedLine) updateLineHeight(savedLine);
-        const savedSpacing = localStorage.getItem('readzen_letter_spacing');
-        if (savedSpacing) updateLetterSpacing(savedSpacing);
-        const savedAlign = localStorage.getItem('readzen_text_align');
-        if (savedAlign) setTextAlign(savedAlign);
-    };
-
-    // Override loadPages to trigger resume loading
-    const oldLoad = loadPages;
-    loadPages = async function () {
-        try {
-            const res = await fetch(`/api/documents/${DOC_ID}/text`);
-            const data = await res.json();
-
-            if (data.pages && data.pages.length > 0) {
-                pages = data.pages;
-            } else if (data.text) {
-                pages = [data.text];
-            } else {
-                pages = ["No text content found."];
-            }
-
-            // Attempt resume
-            loadProgress();
-
-            renderPage();
-            const controls = document.getElementById('pagination-controls');
-            if (controls) controls.style.display = 'flex';
-        } catch (e) {
-            console.error(e);
-            const contentDiv = document.getElementById('page-content');
-            if (contentDiv) contentDiv.innerText = "Error loading text.";
-        }
-    }
 </script>
 {% endblock %}

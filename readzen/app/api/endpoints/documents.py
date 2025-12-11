@@ -8,13 +8,17 @@ from app.services.ocr.service import get_ocr_service
 import shutil
 import logging
 import os
+import asyncio
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 async def process_document(document_id: int, file_path: str):
+    """
+    Traitement initial du document : compte les pages et extrait la première page.
+    Les autres pages seront extraites à la demande (lazy loading).
+    """
     logger.info(f"Background task started for doc {document_id} at {file_path}")
-    # Re-creating session because the request session is closed.
     from app.core.database import SessionLocal
     async with SessionLocal() as session:
         stmt = select(Document).where(Document.id == document_id)
@@ -29,32 +33,26 @@ async def process_document(document_id: int, file_path: str):
             document.status = ProcessingStatus.PROCESSING.value
             await session.commit()
 
-            # OCR Processing
             ocr_service = get_ocr_service()
-            # Running synchronous OCR in a threadpool to not block the event loop
-            import asyncio
             loop = asyncio.get_running_loop()
-            text = await loop.run_in_executor(None, ocr_service.extract_text, file_path, str(document_id))
-
-            document.extracted_text = text
+            
+            # 1. Compter les pages du PDF
+            page_count = await loop.run_in_executor(None, ocr_service.get_page_count, file_path)
+            document.page_count = page_count
+            document.extracted_pages = {}
+            logger.info(f"Document {document_id} has {page_count} pages")
+            
+            # 2. Extraire uniquement la première page
+            logger.info(f"Extracting first page for doc {document_id}")
+            first_page_html = await loop.run_in_executor(None, ocr_service.extract_page, file_path, 0)
+            
+            # Stocker la première page
+            document.extracted_pages = {"0": first_page_html}
+            document.extracted_text = first_page_html  # Compatibilité legacy
             document.status = ProcessingStatus.COMPLETED.value
             
-            # AI Summarization
-            try:
-                from app.services.ai.summarizer import get_summarizer
-                summarizer = get_summarizer()
-                logger.info(f"Generating summary for doc {document_id}")
-                # Synchronous call in background thread
-                summary = await loop.run_in_executor(None, summarizer.summarize_text, text)
-                document.summary = summary
-                logger.info(f"Summary generated for doc {document_id}")
-            except Exception as e:
-                logger.warning(f"Summary generation failed for doc {document_id}: {e}")
-                # Don't fail the whole process if summary fails
-                document.summary = "Summary unavailable."
-
             await session.commit()
-            logger.info(f"Document {document_id} processed successfully")
+            logger.info(f"Document {document_id} first page processed successfully")
 
         except Exception as e:
             logger.error(f"Error processing document {document_id}: {e}")
@@ -117,13 +115,15 @@ async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
         "id": document.id,
         "filename": document.filename,
         "status": document.status,
-        "upload_date": document.upload_date
+        "upload_date": document.upload_date,
+        "page_count": document.page_count
     }
 
 import re
 
 @router.get("/{document_id}/text")
 async def get_document_text(document_id: int, db: AsyncSession = Depends(get_db)):
+    """Retourne les informations sur les pages extraites."""
     result = await db.execute(select(Document).where(Document.id == document_id))
     document = result.scalar_one_or_none()
     if not document:
@@ -132,20 +132,70 @@ async def get_document_text(document_id: int, db: AsyncSession = Depends(get_db)
     if document.status != ProcessingStatus.COMPLETED.value:
          raise HTTPException(status_code=400, detail=f"Document is not ready. Status: {document.status}")
 
-    # Split text into pages based on delimiter
-    # Pattern looks for "\n\n--- Page X ---\n\n"
-    # We use a regex to split. The first element might be empty text before first page if matches start.
-    full_text = document.extracted_text or ""
-    # Filter out the page markers to just get content
-    pages = re.split(r'\n\n--- Page \d+ ---\n\n', full_text)
-    # Filter empty pages that might result from split at start
-    pages = [p.strip() for p in pages if p.strip()]
+    # Retourner les pages extraites
+    extracted_pages = document.extracted_pages or {}
     
-    # If no pages found (maybe single page or different format), return full text as one page
-    if not pages:
-        pages = [full_text]
+    # Construire la liste des pages (avec None pour les non-extraites)
+    pages = []
+    for i in range(document.page_count or 1):
+        page_content = extracted_pages.get(str(i))
+        pages.append(page_content)  # None si pas encore extrait
+    
+    return {
+        "page_count": document.page_count or 1,
+        "pages": pages,
+        "extracted_pages": list(extracted_pages.keys()),  # Liste des pages déjà extraites
+        "summary": document.summary
+    }
 
-    return {"text": full_text, "pages": pages, "summary": document.summary}
+@router.get("/{document_id}/page/{page_number}")
+async def get_page(document_id: int, page_number: int, db: AsyncSession = Depends(get_db)):
+    """
+    Récupère une page spécifique. Si pas encore extraite, lance l'extraction.
+    page_number est 0-indexed.
+    """
+    result = await db.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one_or_none()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if document.status != ProcessingStatus.COMPLETED.value:
+        raise HTTPException(status_code=400, detail=f"Document is not ready. Status: {document.status}")
+    
+    if page_number < 0 or page_number >= (document.page_count or 1):
+        raise HTTPException(status_code=400, detail=f"Invalid page number. Document has {document.page_count} pages (0-{document.page_count-1})")
+    
+    extracted_pages = document.extracted_pages or {}
+    page_key = str(page_number)
+    
+    # Vérifier si la page est déjà extraite
+    if page_key in extracted_pages:
+        return {"page_number": page_number, "content": extracted_pages[page_key], "cached": True}
+    
+    # Sinon, extraire la page
+    try:
+        ocr_service = get_ocr_service()
+        loop = asyncio.get_running_loop()
+        
+        logger.info(f"Extracting page {page_number} for document {document_id}")
+        page_html = await loop.run_in_executor(
+            None, 
+            ocr_service.extract_page, 
+            document.file_path, 
+            page_number
+        )
+        
+        # Sauvegarder la page extraite
+        extracted_pages[page_key] = page_html
+        document.extracted_pages = extracted_pages
+        await db.commit()
+        
+        logger.info(f"Page {page_number} extracted and cached for document {document_id}")
+        return {"page_number": page_number, "content": page_html, "cached": False}
+        
+    except Exception as e:
+        logger.error(f"Error extracting page {page_number} for document {document_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to extract page: {str(e)}")
 
 @router.delete("/{document_id}", status_code=204)
 async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):

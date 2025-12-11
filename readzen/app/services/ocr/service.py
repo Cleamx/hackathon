@@ -1,334 +1,196 @@
 from abc import ABC, abstractmethod
-import pytesseract
-from pdf2image import convert_from_path
-from PIL import Image, ImageOps
-import fitz  # PyMuPDF
 import os
 import logging
-import re
-import hashlib
-import shutil
+import fitz  # PyMuPDF
+from openai import OpenAI
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
-
-import pymupdf4llm
 
 
 class OCRProvider(ABC):
     @abstractmethod
     def extract_text(self, file_path: str, doc_id: str = "temp") -> str:
         pass
+    
+    @abstractmethod
+    def get_page_count(self, file_path: str) -> int:
+        pass
+    
+    @abstractmethod
+    def extract_page(self, file_path: str, page_number: int) -> str:
+        pass
 
 
-class PyMuPDF4LLMService(OCRProvider):
+class OpenAIOCRService(OCRProvider):
     """
-    Service OCR qui préserve la mise en page originale du PDF.
-    Extrait le texte avec les informations d'alignement et de structure.
-    Filtre automatiquement les headers et footers.
+    Service OCR qui utilise l'API OpenAI pour extraire
+    et convertir le contenu d'un PDF en HTML structuré.
+    Supporte le lazy loading page par page.
     """
-    
-    # Patterns pour détecter les headers/footers à filtrer
-    HEADER_FOOTER_PATTERNS = [
-        # Numéros de page
-        r'^\s*\d+\s*$',
-        r'^\s*-\s*\d+\s*-\s*$',
-        r'^\s*Page\s+\d+\s*$',
-        # Copyright et DOI
-        r'©\s*\d{4}',
-        r'https?://doi\.org/',
-        r'ACM\s+ISBN',
-        r'978-\d+-\d+-\d+-\d+',
-        r'979-\d+-\d+-\d+-\d+',
-        # Conférences/Journaux (lignes courtes avec dates et lieux)
-        r"^[A-Z]{2,}['\s]\d{2},?\s*(January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2}[-–]\d{1,2})",
-        r'^\s*[A-Z][a-z]+\s+\d{1,2}[-–]\d{1,2},\s*\d{4}',
-        # Headers répétitifs de journaux
-        r'^(Vol\.|Volume)\s*\d+',
-        r'^(No\.|Number)\s*\d+',
-        r'^\s*ISSN\s*\d',
-        # Lignes avec seulement des infos de publication
-        r'^Copyright\s+held\s+by',
-        r'^Permission\s+to\s+make',
-        r'^This\s+work\s+is\s+licensed',
-    ]
-    
+
+    EXTRACTION_PROMPT = """Act as an expert data extractor and web developer. I am providing a PDF document (single page). Your goal is to convert the visual content of this PDF into a clean, semantically correct HTML structure.
+
+Instructions:
+
+Analyze the layout: Identify headers, paragraphs, lists, and data tables.
+
+Structure: Use appropriate HTML5 tags (<h1>, <h2>, <p>, <ul>, <table>, <thead>, <tbody>).
+
+Tables: If the PDF contains grids or tables, you MUST reconstruct them using HTML <table> tags with proper row/column alignment. Do not list table data as plain text.
+
+Styling: Use minimal inline CSS or a simple <style> block just to make it readable and resemble the original layout (borders for tables, bold for headers).
+
+Output: Return ONLY the HTML code, without markdown code blocks (```html) or conversational filler."""
+
     def __init__(self):
-        self.header_footer_regexes = [re.compile(p, re.IGNORECASE) for p in self.HEADER_FOOTER_PATTERNS]
+        api_key = settings.OPENAI_API_KEY
+        if not api_key:
+            logger.warning("OpenAI API key not found in settings")
+            self.client = None
+        else:
+            logger.info(f"OpenAI API key loaded (starts with: {api_key[:20]}...)")
+            self.client = OpenAI(api_key=api_key)
     
+    def get_page_count(self, file_path: str) -> int:
+        """Retourne le nombre de pages du PDF."""
+        logger.info(f"Obtention du nombre de pages pour {file_path}")
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"PDF file not found: {file_path}")
+        
+        doc = fitz.open(file_path)
+        count = len(doc)
+        doc.close()
+        return count
+    
+    def _extract_single_page_pdf(self, file_path: str, page_number: int) -> str:
+        """
+        Extrait une seule page du PDF et la sauvegarde temporairement.
+        page_number est 0-indexed.
+        Retourne le chemin du fichier temporaire.
+        """
+        logger.info(f"Extraction de la page {page_number} du PDF {file_path}")
+        doc = fitz.open(file_path)
+        
+        if page_number < 0 or page_number >= len(doc):
+            doc.close()
+            raise ValueError(f"Page {page_number} out of range (0-{len(doc)-1})")
+        
+        # Créer un nouveau PDF avec juste cette page
+        single_page_doc = fitz.open()
+        single_page_doc.insert_pdf(doc, from_page=page_number, to_page=page_number)
+        
+        # Sauvegarder temporairement
+        temp_path = f"/tmp/page_{page_number}_{os.path.basename(file_path)}"
+        single_page_doc.save(temp_path)
+        single_page_doc.close()
+        doc.close()
+        
+        return temp_path
+
+    def extract_page(self, file_path: str, page_number: int) -> str:
+        """
+        Extrait une seule page du PDF en utilisant l'API OpenAI.
+        page_number est 0-indexed.
+        """
+        logger.info(f"Début extraction page {page_number} de {file_path}")
+        if not self.client:
+            raise ValueError("OpenAI API key not configured. Please set SECRET_KEY in .env")
+        
+        try:
+            logger.info(f"Extraction page {page_number} de {file_path}")
+            
+            # Vérifier que le fichier existe
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"PDF file not found: {file_path}")
+            
+            # Extraire la page unique dans un PDF temporaire
+            temp_pdf_path = self._extract_single_page_pdf(file_path, page_number)
+            
+            try:
+                # 1. Upload du fichier PDF (page unique) à OpenAI
+                logger.info(f"Upload de la page {page_number} vers OpenAI...")
+                with open(temp_pdf_path, "rb") as pdf_file:
+                    uploaded_file = self.client.files.create(
+                        file=pdf_file,
+                        purpose="assistants"
+                    )
+                logger.info(f"Page uploadée avec ID: {uploaded_file.id}")
+
+                # 2. Appeler l'API responses avec le fichier
+                logger.info("Appel de l'API OpenAI pour extraction...")
+                response = self.client.responses.create(
+                    model="gpt-4o",
+                    input=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_file",
+                                    "file_id": uploaded_file.id,
+                                },
+                                {
+                                    "type": "input_text",
+                                    "text": self.EXTRACTION_PROMPT,
+                                },
+                            ]
+                        }
+                    ]
+                )
+
+                # 3. Récupérer le contenu HTML
+                html_content = response.output_text
+                logger.info(f"Réponse reçue: {len(html_content)} caractères")
+
+                # 4. Nettoyer la réponse
+                html_content = self._clean_html_response(html_content)
+
+                # 5. Supprimer le fichier uploadé (nettoyage)
+                try:
+                    self.client.files.delete(uploaded_file.id)
+                    logger.info(f"Fichier {uploaded_file.id} supprimé de OpenAI")
+                except Exception as e:
+                    logger.warning(f"Impossible de supprimer le fichier uploadé: {e}")
+
+                logger.info(f"Page {page_number} extraite: {len(html_content)} chars")
+                return html_content
+                
+            finally:
+                # Nettoyer le fichier temporaire
+                if os.path.exists(temp_pdf_path):
+                    os.remove(temp_pdf_path)
+
+        except Exception as e:
+            logger.error(f"Erreur extraction page {page_number}: {type(e).__name__}: {e}", exc_info=True)
+            raise
+
     def extract_text(self, file_path: str, doc_id: str = "temp") -> str:
         """
-        Extrait le texte d'un PDF en préservant la mise en page.
-        Génère du HTML avec les styles d'alignement appropriés.
+        Extrait uniquement la première page pour initialiser le document.
+        Les autres pages seront extraites à la demande (lazy loading).
         """
-        try:
-            logger.info(f"Extraction avec mise en page pour {file_path}")
-            
-            # Dossier pour les images
-            img_rel_path = f"images/{doc_id}"
-            img_output_dir = os.path.join("app/static/uploads", img_rel_path)
-            
-            if os.path.exists(img_output_dir):
-                shutil.rmtree(img_output_dir)
-            os.makedirs(img_output_dir, exist_ok=True)
-            
-            # Ouvrir le PDF
-            doc = fitz.open(file_path)
-            all_pages_html = []
-            
-            for page_num in range(len(doc)):
-                logger.info(f"Traitement page {page_num + 1}/{len(doc)}")
-                page = doc[page_num]
-                
-                # Extraire avec informations de mise en page
-                page_html = self._extract_page_with_layout(page, page_num, img_output_dir, img_rel_path)
-                
-                if page_html.strip():
-                    all_pages_html.append(f"\n\n--- Page {page_num + 1} ---\n\n{page_html}")
-            
-            doc.close()
-            
-            final_text = ''.join(all_pages_html)
-            logger.info(f"Extraction terminée: {len(final_text)} chars, {len(all_pages_html)} pages")
-            
-            return final_text
-            
-        except Exception as e:
-            logger.error(f"Erreur extraction: {e}")
-            raise
-    
-    def _is_header_or_footer(self, text: str, block_bbox: list, page_height: float) -> bool:
+        return self.extract_page(file_path, 0)
+
+    def _clean_html_response(self, response: str) -> str:
         """
-        Détermine si un bloc est un header ou footer à filtrer.
+        Nettoie la réponse de l'API en supprimant les éventuels blocs de code markdown.
         """
-        if not text or not text.strip():
-            return True
-        
-        text_clean = text.strip()
-        
-        # Vérifier la position (haut ou bas de page)
-        y0 = block_bbox[1]
-        y1 = block_bbox[3]
-        
-        # Zone header (top 8% de la page) ou footer (bottom 10% de la page)
-        is_in_header_zone = y0 < page_height * 0.08
-        is_in_footer_zone = y1 > page_height * 0.90
-        
-        # Si c'est dans une zone header/footer, vérifier le contenu
-        if is_in_header_zone or is_in_footer_zone:
-            # Texte très court dans ces zones = probablement header/footer
-            if len(text_clean) < 100:
-                # Vérifier les patterns
-                for regex in self.header_footer_regexes:
-                    if regex.search(text_clean):
-                        return True
-                
-                # Numéro de page seul
-                if text_clean.isdigit():
-                    return True
-        
-        # Vérifier les patterns même en dehors des zones
-        for regex in self.header_footer_regexes:
-            if regex.search(text_clean):
-                # Seulement filtrer si c'est une ligne courte
-                if len(text_clean) < 150:
-                    return True
-        
-        return False
-    
-    def _extract_page_with_layout(self, page: fitz.Page, page_num: int, img_output_dir: str, img_rel_path: str) -> str:
-        """
-        Extrait une page en préservant la mise en page (alignement, structure).
-        Filtre les headers et footers.
-        """
-        page_width = page.rect.width
-        page_height = page.rect.height
-        page_center = page_width / 2
-        
-        # Extraire les blocs de texte avec leurs positions
-        blocks = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)["blocks"]
-        
-        html_parts = []
-        
-        for block in blocks:
-            if block["type"] == 0:  # Bloc de texte
-                # Extraire le texte brut pour vérifier si c'est un header/footer
-                block_text = self._get_block_text(block)
-                block_bbox = block.get("bbox", [0, 0, page_width, page_height])
-                
-                # Filtrer les headers/footers
-                if self._is_header_or_footer(block_text, block_bbox, page_height):
-                    logger.debug(f"Filtered header/footer: {block_text[:50]}...")
-                    continue
-                
-                block_html = self._process_text_block(block, page_width, page_center)
-                if block_html:
-                    html_parts.append(block_html)
-            elif block["type"] == 1:  # Bloc image
-                img_html = self._process_image_block(block, page_num, img_output_dir, img_rel_path)
-                if img_html:
-                    html_parts.append(img_html)
-        
-        return '\n'.join(html_parts)
-    
-    def _get_block_text(self, block: dict) -> str:
-        """Extrait le texte brut d'un bloc."""
-        text_parts = []
-        for line in block.get("lines", []):
-            for span in line.get("spans", []):
-                text_parts.append(span.get("text", ""))
-        return ' '.join(text_parts)
-    
-    def _process_text_block(self, block: dict, page_width: float, page_center: float) -> str:
-        """
-        Traite un bloc de texte et détermine son alignement.
-        """
-        lines = block.get("lines", [])
-        if not lines:
+        if not response:
             return ""
-        
-        # Collecter tout le texte du bloc
-        block_text_parts = []
-        block_x0 = block.get("bbox", [0])[0]
-        block_x1 = block.get("bbox", [0, 0, page_width])[2]
-        block_width = block_x1 - block_x0
-        
-        # Analyser les propriétés des lignes
-        is_title = False
-        is_bold = False
-        font_sizes = []
-        
-        for line in lines:
-            line_text = ""
-            for span in line.get("spans", []):
-                text = span.get("text", "")
-                font_size = span.get("size", 12)
-                font_flags = span.get("flags", 0)
-                
-                font_sizes.append(font_size)
-                
-                # Détecter gras (flag 2^4 = 16 pour bold)
-                if font_flags & 16:
-                    is_bold = True
-                
-                line_text += text
-            
-            if line_text.strip():
-                block_text_parts.append(line_text)
-        
-        if not block_text_parts:
-            return ""
-        
-        full_text = '\n'.join(block_text_parts)
-        
-        # Nettoyer le texte
-        full_text = self._clean_text(full_text)
-        
-        if not full_text.strip():
-            return ""
-        
-        # Déterminer l'alignement basé sur la position du bloc
-        alignment = self._detect_alignment(block, page_width, page_center)
-        
-        # Déterminer si c'est un titre (texte court, centré ou tout en majuscules)
-        avg_font_size = sum(font_sizes) / len(font_sizes) if font_sizes else 12
-        is_title = (
-            (full_text.isupper() and len(full_text) < 100) or
-            (avg_font_size > 14 and len(full_text) < 150) or
-            (alignment == "center" and len(full_text) < 100)
-        )
-        
-        # Générer le HTML avec le bon style
-        style_parts = []
-        
-        if alignment == "center":
-            style_parts.append("text-align: center")
-        elif alignment == "right":
-            style_parts.append("text-align: right")
-        elif alignment == "justify":
-            style_parts.append("text-align: justify")
-        else:
-            style_parts.append("text-align: left")
-        
-        style = "; ".join(style_parts) if style_parts else ""
-        
-        # Échapper le HTML dans le texte
-        escaped_text = full_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        
-        # Convertir les sauts de ligne en <br>
-        escaped_text = escaped_text.replace("\n", "<br>")
-        
-        if is_title:
-            if full_text.isupper():
-                return f'<h2 style="{style}">{escaped_text}</h2>'
-            else:
-                return f'<h3 style="{style}">{escaped_text}</h3>'
-        elif is_bold:
-            return f'<p style="{style}"><strong>{escaped_text}</strong></p>'
-        else:
-            return f'<p style="{style}">{escaped_text}</p>'
-    
-    def _detect_alignment(self, block: dict, page_width: float, page_center: float) -> str:
-        """
-        Détecte l'alignement d'un bloc de texte basé sur sa position.
-        """
-        bbox = block.get("bbox", [0, 0, page_width, 0])
-        x0, y0, x1, y1 = bbox
-        
-        block_center = (x0 + x1) / 2
-        block_width = x1 - x0
-        
-        # Marges typiques (environ 10% de chaque côté)
-        left_margin = page_width * 0.1
-        right_margin = page_width * 0.9
-        
-        # Vérifier si le bloc est centré
-        if abs(block_center - page_center) < page_width * 0.05:
-            # Le centre du bloc est proche du centre de la page
-            if x0 > left_margin and x1 < right_margin:
-                return "center"
-        
-        # Vérifier alignement à droite
-        if x1 > right_margin - 10 and x0 > page_center:
-            return "right"
-        
-        # Vérifier si justifié (bloc large qui touche les deux marges)
-        if x0 < left_margin + 20 and x1 > right_margin - 20:
-            return "justify"
-        
-        # Par défaut, aligné à gauche
-        return "left"
-    
-    def _process_image_block(self, block: dict, page_num: int, img_output_dir: str, img_rel_path: str) -> str:
-        """
-        Traite un bloc image.
-        """
-        try:
-            # Les images sont déjà extraites par pymupdf4llm
-            # On pourrait ajouter une extraction manuelle ici si nécessaire
-            return ""
-        except Exception as e:
-            logger.warning(f"Erreur traitement image: {e}")
-            return ""
-    
-    def _clean_text(self, text: str) -> str:
-        """
-        Nettoie le texte extrait.
-        """
-        if not text:
-            return ""
-        
-        # Supprimer les caractères de contrôle
-        text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
-        
-        # Nettoyer les espaces multiples (mais garder les sauts de ligne)
-        text = re.sub(r'[^\S\n]+', ' ', text)
-        
-        # Nettoyer les lignes vides multiples
-        text = re.sub(r'\n{3,}', '\n\n', text)
-        
-        return text.strip()
+
+        response = response.strip()
+
+        if response.startswith("```html"):
+            response = response[7:]
+        elif response.startswith("```"):
+            response = response[3:]
+
+        if response.endswith("```"):
+            response = response[:-3]
+
+        return response.strip()
 
 
-def get_ocr_service() -> OCRProvider:
-    """Retourne le service OCR par défaut."""
-    return PyMuPDF4LLMService()
+def get_ocr_service() -> OpenAIOCRService:
+    """Retourne le service OCR par défaut (OpenAI)."""
+    return OpenAIOCRService()
