@@ -2,22 +2,160 @@
 
 {% block content %}
 <div class="toolbar">
-    <button class="btn" id="theme-toggle">Toggle Theme</button>
-    <button class="btn" id="font-toggle">Dyslexic Font</button>
-    <button class="btn" id="tts-btn">Read Aloud</button>
-    <span id="reading-time">Est. reading time: calculating...</span>
+    <button class="btn" id="theme-toggle">Theme</button>
+    <button class="btn" id="font-toggle">Police</button>
+    <button class="btn" id="tts-btn">Lecture Vocale</button>
+    <span id="reading-time" style="margin-left: auto; align-self: center; font-size: 0.9rem;"></span>
+    <span style="font-size: 0.8rem; opacity: 0.5;">v7</span>
 </div>
 
-<div class="content" id="reader-content" data-doc-id="{{ document.id }}">
-    {% if document.extract_text %}
-    {{ document.extract_text }}
-    {% else %}
-    Loading text...
-    {% endif %}
+<div id="reader-container">
+    <div id="page-content" class="page-frame">
+        Loading...
+    </div>
+</div>
+
+<div class="pagination-controls" id="pagination-controls" style="display: none;">
+    <button class="btn" id="prev-page" disabled>Previous</button>
+    <span id="page-indicator">Page 1 / ?</span>
+    <button class="btn" id="next-page">Next</button>
 </div>
 
 <script>
-    const DOC_ID = {{ document.id }};
+    const DOC_ID = "{{ document.id }}";
     const INITIAL_STATUS = "{{ document.status }}";
+
+    let pages = [];
+    let currentPage = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        accessibility.init();
+
+        if (INITIAL_STATUS === 'completed') {
+            loadPages();
+        } else {
+            trackOCRStatus(DOC_ID);
+        }
+
+        // Event Listeners for Pagination
+        document.getElementById('prev-page').addEventListener('click', () => changePage(-1));
+        document.getElementById('next-page').addEventListener('click', () => changePage(1));
+
+        // TTS
+        const ttsBtn = document.getElementById('tts-btn');
+        if (ttsBtn) {
+            ttsBtn.addEventListener('click', () => {
+                const text = document.getElementById('page-content').innerText;
+                const utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
+            });
+        }
+    });
+
+    async function loadPages() {
+        try {
+            const res = await fetch(`/api/documents/${DOC_ID}/text`);
+            const data = await res.json();
+
+            if (data.pages && data.pages.length > 0) {
+                pages = data.pages;
+            } else if (data.text) {
+                pages = [data.text];
+            } else {
+                pages = ["No text content found."];
+            }
+
+            currentPage = 0;
+            renderPage();
+            const controls = document.getElementById('pagination-controls');
+            if (controls) controls.style.display = 'flex';
+        } catch (e) {
+            console.error(e);
+            const contentDiv = document.getElementById('page-content');
+            if (contentDiv) contentDiv.innerText = "Error loading text.";
+        }
+    }
+
+    function renderPage() {
+        if (pages.length === 0) return;
+
+        const contentDiv = document.getElementById('page-content');
+        if (contentDiv) contentDiv.innerText = pages[currentPage];
+
+        // Update Accessibility (Coloring)
+        accessibility.colorizeText();
+
+        // Update Controls
+        const ind = document.getElementById('page-indicator');
+        if (ind) ind.innerText = `Page ${currentPage + 1} / ${pages.length}`;
+
+        const prev = document.getElementById('prev-page');
+        if (prev) prev.disabled = currentPage === 0;
+
+        const next = document.getElementById('next-page');
+        if (next) next.disabled = currentPage === pages.length - 1;
+
+        // Reading Time Update
+        calculateReadingTime(pages[currentPage]);
+
+        // Scroll to top
+        window.scrollTo(0, 0);
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 0 && newPage < pages.length) {
+            currentPage = newPage;
+            renderPage();
+        }
+    }
+
+    async function trackOCRStatus(docId) {
+        const contentDiv = document.getElementById('page-content');
+        if (!contentDiv) return;
+
+        console.log("Starting OCR tracking for doc " + docId);
+
+        const poll = async () => {
+            try {
+                // Cache busting query param
+                const res = await fetch(`/api/documents/${docId}?t=${Date.now()}`);
+                if (!res.ok) throw new Error("API Error");
+
+                const data = await res.json();
+
+                // Show actual status for debugging
+                contentDiv.innerText = `Processing OCR... Status: ${data.status} (v3)`;
+
+                if (data.status === 'completed') {
+                    loadPages();
+                } else if (data.status === 'failed') {
+                    contentDiv.innerText = "Processing failed. Please try a different PDF.";
+                } else {
+                    // Continue polling if pending/processing
+                    setTimeout(poll, 2000);
+                }
+            } catch (e) {
+                console.error(e);
+                contentDiv.innerText = `Error: ${e.message}. Retrying...`;
+                // Retry slower on error
+                setTimeout(poll, 5000);
+            }
+        };
+
+        // Start polling
+        poll();
+    }
+
+    function calculateReadingTime(text) {
+        if (!text) return;
+        const words = text.trim().split(/\s+/).length;
+        const wpm = 200;
+        const minutes = Math.ceil(words / wpm);
+        const readingTimeSpan = document.getElementById('reading-time');
+        if (readingTimeSpan) {
+            readingTimeSpan.innerText = `${minutes} min read (page)`;
+        }
+    }
 </script>
 {% endblock %}

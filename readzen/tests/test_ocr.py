@@ -17,6 +17,9 @@ def test_tesseract_ocr_pdf(mock_convert, mock_tesseract):
     service = TesseractOCR()
     text = service.extract_text("dummy.pdf")
     
+    # Assertions
+    mock_convert.assert_called_once_with("dummy.pdf", dpi=100, timeout=60)
+    assert mock_tesseract.call_count == 2
     assert "Page 1 text" in text
     assert "Page 2 text" in text
     assert "--- Page 1 ---" in text

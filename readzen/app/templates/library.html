@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="library-header">
+    <h2>Ma Bibliothèque</h2>
+    <a href="/" class="btn">Ajouter un document</a>
+</div>
+
+<div class="library-grid" id="doc-grid">
+    <!-- Documents will be loaded here via JS or rendered by Jinja if passed -->
+    <p>Chargement...</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const grid = document.getElementById('doc-grid');
+        try {
+            const res = await fetch('/api/documents/');
+            const docs = await res.json();
+
+            if (docs.length === 0) {
+                grid.innerHTML = '<p>Aucun document. Commencez par en ajouter un !</p>';
+                return;
+            }
+
+            grid.innerHTML = docs.map(doc => `
+            <div class="document-card">
+                <div>
+                    <h3>${doc.filename}</h3>
+                    <div class="document-meta">
+                        ${new Date(doc.upload_date).toLocaleDateString()} • ${doc.status}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <a href="/reader/${doc.id}" class="btn">Lire</a>
+                    <button class="btn btn-danger" onclick="deleteDocument(${doc.id})">Supprimer</button>
+                </div>
+            </div>
+        `).join('');
+        } catch (e) {
+            grid.innerHTML = '<p>Erreur lors du chargement des documents.</p>';
+            console.error(e);
+        }
+    });
+
+    async function deleteDocument(id) {
+        if (!confirm('Etes-vous sûr de vouloir supprimer ce document ?')) return;
+
+        try {
+            const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                alert('Erreur lors de la suppression.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur réseau.');
+        }
+    }
+</script>
+
+<style>
+    .library-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .btn-danger {
+        background-color: #d32f2f;
+    }
+
+    .btn-danger:hover {
+        background-color: #b71c1c;
+    }
+</style>
+{% endblock %}

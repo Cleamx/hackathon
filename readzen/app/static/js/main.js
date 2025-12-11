@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Theme Handling
     const themes = ['theme-light', 'theme-dark', 'theme-sepia'];
     let currentThemeIndex = 0;
-    
+
     const themeBtn = document.getElementById('theme-toggle');
     if (themeBtn) {
         themeBtn.addEventListener('click', () => {
@@ -74,12 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
 async function pollStatus(docId) {
     const contentDiv = document.getElementById('reader-content');
     contentDiv.innerText = "Processing OCR... Please wait.";
-    
+
     const interval = setInterval(async () => {
         try {
             const res = await fetch(`/api/documents/${docId}`);
             const data = await res.json();
-            
+
             if (data.status === 'completed') {
                 clearInterval(interval);
                 // Fetch text
@@ -98,7 +98,11 @@ async function pollStatus(docId) {
 }
 
 function calculateReadingTime() {
-    const text = document.getElementById('reader-content').innerText;
+    const readerContent = document.getElementById('reader-content');
+    // Guard clause: if element doesn't exist, stop.
+    if (!readerContent) return;
+
+    const text = readerContent.innerText;
     const words = text.trim().split(/\s+/).length;
     const wpm = 200;
     const minutes = Math.ceil(words / wpm);

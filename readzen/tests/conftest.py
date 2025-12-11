@@ -36,6 +36,10 @@ async def client():
     async with AsyncClient(app=app, base_url="http://test") as c:
         yield c
     
-    # Drop tables (optional for in-memory)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+@pytest.fixture
+async def test_db():
+    async with TestingSessionLocal() as session:
+        yield session

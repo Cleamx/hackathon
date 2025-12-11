@@ -1,0 +1,156 @@
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap');
+
+.font-dyslexic {
+    font-family: 'OpenDyslexic', sans-serif !important;
+}
+
+.font-lexend {
+    font-family: 'Lexend', sans-serif !important;
+}
+
+/* Themes */
+body.theme-light {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --secondary-color: #f5f5f5;
+    --border-color: #dddddd;
+    --card-bg: #ffffff;
+}
+
+body.theme-dark {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --secondary-color: #2d2d2d;
+    --border-color: #404040;
+    --card-bg: #2d2d2d;
+}
+
+body.theme-sepia {
+    --bg-color: #f4ecd8;
+    --text-color: #5b4636;
+    --secondary-color: #e8ded2;
+    --border-color: #d1c7b7;
+    --card-bg: #fffbf0;
+}
+
+/* Syllable Styles */
+.syll {
+    display: inline-block;
+    /* Allows separate styling but keeps flow */
+}
+
+/* Alternating Typography Mode */
+.syll-alt-1 {
+    font-weight: 700;
+    /* Bold */
+}
+
+.syll-alt-2 {
+    font-style: italic;
+    opacity: 0.9;
+}
+
+.syll-alt-3 {
+    opacity: 0.7;
+    /* Faded */
+}
+
+/* Underline Mode */
+.syll-underlined {
+    border-bottom: 2px solid currentColor;
+    margin-right: 1px;
+    /* Separation visibility */
+}
+
+/* Silent Letters */
+.silent-letter {
+    opacity: 0.5;
+    font-style: italic;
+    color: var(--text-color);
+    /* Inherit but fade */
+}
+
+/* Phoneme Colors (Dynamic classes will utilize inline styles or these helper classes) */
+.phoneme {
+    font-weight: 600;
+    /* Color applied via inline style for custom picker support */
+}
+
+/* Old Demo Colors (kept for compatibility if needed, but likely replaced) */
+.syn-red {
+    color: #d32f2f;
+}
+
+.syn-blue {
+    color: #1976d2;
+}
+
+.syn-green {
+    color: #388e3c;
+}
+
+/* Library Grid */
+.library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.document-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.document-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-meta {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.8;
+    margin-bottom: 15px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Navigation */
+.main-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.nav-link {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: var(--primary-color);
+}
+
+.back-btn {
+    margin-right: 15px;
+}

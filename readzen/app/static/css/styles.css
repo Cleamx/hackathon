@@ -60,7 +60,9 @@ header {
     margin-bottom: 20px;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     margin-top: 0;
 }
 
@@ -112,7 +114,44 @@ a {
     z-index: 100;
 }
 
+.page-frame {
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 60px 80px;
+    /* Generous padding for "paper" feel */
+    margin: 30px auto;
+    max-width: 800px;
+    min-height: 80vh;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+    position: sticky;
+    bottom: 0;
+    background-color: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+    z-index: 100;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    .page-frame {
+        padding: 20px;
+        margin: 10px;
+        box-shadow: none;
+        /* Flatter look on mobile to save space/performance */
+        border: none;
+    }
+}
+
 .content {
+    /* Legacy class support, might not be needed if we use page-frame */
     margin-top: 20px;
     white-space: pre-wrap;
 }

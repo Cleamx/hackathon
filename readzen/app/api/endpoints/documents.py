@@ -7,11 +7,13 @@ from app.services.storage import StorageService
 from app.services.ocr.service import get_ocr_service
 import shutil
 import logging
+import os
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 async def process_document(document_id: int, file_path: str):
+    logger.info(f"Background task started for doc {document_id} at {file_path}")
     # Re-creating session because the request session is closed.
     from app.core.database import SessionLocal
     async with SessionLocal() as session:
@@ -76,6 +78,20 @@ async def upload_document(
 
     return {"id": doc_id, "status": ProcessingStatus.PENDING.value}
 
+@router.get("/", response_model=list[dict])
+async def list_documents(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Document).order_by(Document.upload_date.desc()))
+    documents = result.scalars().all()
+    return [
+        {
+            "id": doc.id,
+            "filename": doc.filename,
+            "status": doc.status,
+            "upload_date": doc.upload_date
+        }
+        for doc in documents
+    ]
+
 @router.get("/{document_id}")
 async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Document).where(Document.id == document_id))
@@ -89,6 +105,8 @@ async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
         "upload_date": document.upload_date
     }
 
+import re
+
 @router.get("/{document_id}/text")
 async def get_document_text(document_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Document).where(Document.id == document_id))
@@ -99,4 +117,37 @@ async def get_document_text(document_id: int, db: AsyncSession = Depends(get_db)
     if document.status != ProcessingStatus.COMPLETED.value:
          raise HTTPException(status_code=400, detail=f"Document is not ready. Status: {document.status}")
 
-    return {"text": document.extracted_text}
+    # Split text into pages based on delimiter
+    # Pattern looks for "\n\n--- Page X ---\n\n"
+    # We use a regex to split. The first element might be empty text before first page if matches start.
+    full_text = document.extracted_text or ""
+    # Filter out the page markers to just get content
+    pages = re.split(r'\n\n--- Page \d+ ---\n\n', full_text)
+    # Filter empty pages that might result from split at start
+    pages = [p.strip() for p in pages if p.strip()]
+    
+    # If no pages found (maybe single page or different format), return full text as one page
+    if not pages:
+        pages = [full_text]
+
+    return {"text": full_text, "pages": pages}
+
+@router.delete("/{document_id}", status_code=204)
+async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one_or_none()
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    # Delete file from storage
+    if document.file_path and os.path.exists(document.file_path):
+        try:
+            os.remove(document.file_path)
+        except OSError:
+            logger.warning(f"Could not remove file {document.file_path}")
+
+    # Delete from DB
+    await db.delete(document)
+    await db.commit()
+    return None

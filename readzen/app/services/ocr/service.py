@@ -24,8 +24,14 @@ class TesseractOCR(OCRProvider):
             raise
 
     def _process_pdf(self, file_path: str) -> str:
-        # Convert PDF to images
-        images = convert_from_path(file_path)
+        # Convert PDF to images with optimized settings for speed
+        # DPI 100 significantly reduces processing time. Grayscale removed for stability.
+        # Added timeout to prevent hanging.
+        try:
+            images = convert_from_path(file_path, dpi=100, timeout=60)
+        except Exception as e:
+            raise Exception(f"PDF Conversion failed: {e}")
+
         text = ""
         for i, image in enumerate(images):
             page_text = pytesseract.image_to_string(image)

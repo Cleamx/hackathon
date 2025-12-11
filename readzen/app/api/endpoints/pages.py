@@ -20,7 +20,20 @@ async def reader(request: Request, document_id: int, db: AsyncSession = Depends(
     if not document:
         return templates.TemplateResponse("index.html", {"request": request, "error": "Document not found"})
         
-    return templates.TemplateResponse("reader.html", {
+    response = templates.TemplateResponse("reader.html", {
         "request": request,
         "document": document
     })
+    # Disable caching to ensure JS updates are seen
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+@router.get("/library")
+async def library(request: Request):
+    return templates.TemplateResponse("library.html", {"request": request})
+
+@router.get("/accessibility")
+async def accessibility(request: Request):
+    return templates.TemplateResponse("accessibility.html", {"request": request})
