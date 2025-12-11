@@ -203,3 +203,6 @@ out/
 *.VC.VC.opendb.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock
 *.VC.VC.opendb.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log
 *.VC.VC.opendb.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock.log.lock
+
+# Autres
+/readzen/uploads/
