@@ -40,6 +40,37 @@
 
         <div class="toolbar-divider"></div>
 
+        <!-- Contrôles espacement -->
+        <div class="toolbar-group spacing-controls">
+            <button class="tool-btn" id="line-height-decrease" title="Réduire l'interligne">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <span class="spacing-label" title="Interligne">↕</span>
+            <button class="tool-btn" id="line-height-increase" title="Augmenter l'interligne">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="4" x2="21" y2="4"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="20" x2="21" y2="20"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div class="toolbar-group spacing-controls">
+            <button class="tool-btn" id="letter-spacing-decrease" title="Réduire l'espacement des lettres">
+                <span style="font-size: 10px; letter-spacing: -1px;">AB</span>
+            </button>
+            <span class="spacing-label" title="Espacement lettres">↔</span>
+            <button class="tool-btn" id="letter-spacing-increase" title="Augmenter l'espacement des lettres">
+                <span style="font-size: 10px; letter-spacing: 2px;">A B</span>
+            </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
         <!-- Alignement -->
         <div class="toolbar-group">
             <button class="tool-btn" id="align-left" title="Gauche" onclick="setTextAlign('left')">
@@ -368,6 +399,40 @@
         if (contrastSlider) contrastSlider.addEventListener('input', (e) => updateContrast(e.target.value));
         if (letterSpacingSlider) letterSpacingSlider.addEventListener('input', (e) => updateLetterSpacing(e.target.value));
         if (lineHeightSlider) lineHeightSlider.addEventListener('input', (e) => updateLineHeight(e.target.value));
+
+        // Toolbar spacing buttons
+        let currentLineHeight = parseFloat(localStorage.getItem('readzen_line_height')) || 1.8;
+        let currentLetterSpacing = parseFloat(localStorage.getItem('readzen_letter_spacing')) || 0;
+
+        const lineHeightDecrease = document.getElementById('line-height-decrease');
+        const lineHeightIncrease = document.getElementById('line-height-increase');
+        const letterSpacingDecrease = document.getElementById('letter-spacing-decrease');
+        const letterSpacingIncrease = document.getElementById('letter-spacing-increase');
+
+        if (lineHeightDecrease) {
+            lineHeightDecrease.addEventListener('click', () => {
+                currentLineHeight = Math.max(1.2, currentLineHeight - 0.2);
+                updateLineHeight(currentLineHeight);
+            });
+        }
+        if (lineHeightIncrease) {
+            lineHeightIncrease.addEventListener('click', () => {
+                currentLineHeight = Math.min(3.0, currentLineHeight + 0.2);
+                updateLineHeight(currentLineHeight);
+            });
+        }
+        if (letterSpacingDecrease) {
+            letterSpacingDecrease.addEventListener('click', () => {
+                currentLetterSpacing = Math.max(0, currentLetterSpacing - 0.5);
+                updateLetterSpacing(currentLetterSpacing);
+            });
+        }
+        if (letterSpacingIncrease) {
+            letterSpacingIncrease.addEventListener('click', () => {
+                currentLetterSpacing = Math.min(5, currentLetterSpacing + 0.5);
+                updateLetterSpacing(currentLetterSpacing);
+            });
+        }
 
         // TTS Advanced Logic
         const ttsPlay = document.getElementById('tts-play');

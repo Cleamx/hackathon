@@ -127,6 +127,26 @@ body.theme-sepia .reader-toolbar {
     font-variant-numeric: tabular-nums;
 }
 
+/* Spacing Controls */
+.spacing-controls {
+    background: var(--color-bg);
+    padding: 2px 4px;
+    border-radius: 20px;
+    gap: 0;
+}
+
+.spacing-controls .tool-btn {
+    width: 26px;
+    height: 26px;
+}
+
+.spacing-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    padding: 0 2px;
+    opacity: 0.7;
+}
+
 /* Reading Time Badge */
 .reading-time-badge {
     font-size: 0.6rem;
