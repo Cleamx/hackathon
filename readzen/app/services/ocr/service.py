@@ -39,9 +39,9 @@ Structure: Use appropriate HTML5 tags (<h1>, <h2>, <p>, <ul>, <table>, <thead>, 
 
 Tables: If the PDF contains grids or tables, you MUST reconstruct them using HTML <table> tags with proper row/column alignment. Do not list table data as plain text.
 
-Styling: Use minimal inline CSS or a simple <style> block just to make it readable and resemble the original layout (borders for tables, bold for headers).
+Styling: Do NOT include any <style> tags or CSS rules. Do NOT style the body element. Only use minimal inline styles on specific elements if absolutely necessary for table borders.
 
-Output: Return ONLY the HTML code, without markdown code blocks (```html) or conversational filler."""
+Output: Return ONLY the raw HTML content (no <html>, <head>, <body> wrapper tags). No markdown code blocks (```html) or conversational filler."""
 
     def __init__(self):
         api_key = settings.OPENAI_API_KEY
@@ -173,7 +173,8 @@ Output: Return ONLY the HTML code, without markdown code blocks (```html) or con
 
     def _clean_html_response(self, response: str) -> str:
         """
-        Nettoie la réponse de l'API en supprimant les éventuels blocs de code markdown.
+        Nettoie la réponse de l'API en supprimant les éventuels blocs de code markdown
+        et les styles indésirables sur body.
         """
         if not response:
             return ""
@@ -188,7 +189,16 @@ Output: Return ONLY the HTML code, without markdown code blocks (```html) or con
         if response.endswith("```"):
             response = response[:-3]
 
-        return response.strip()
+        response = response.strip()
+        
+        # Supprimer les balises <style> qui pourraient affecter le body global
+        import re
+        # Supprimer tout bloc <style> contenant body { ... }
+        response = re.sub(r'<style[^>]*>.*?body\s*\{[^}]*\}.*?</style>', '', response, flags=re.DOTALL | re.IGNORECASE)
+        # Supprimer les styles body inline restants
+        response = re.sub(r'body\s*\{[^}]*margin[^}]*\}', '', response, flags=re.IGNORECASE)
+        
+        return response
 
 
 def get_ocr_service() -> OpenAIOCRService:

@@ -792,6 +792,18 @@
         if (!contentDiv) return;
 
         console.log("Starting OCR tracking for doc " + docId);
+        
+        // Afficher un loader élégant
+        contentDiv.innerHTML = `
+            <div class="ocr-loading">
+                <div class="ocr-spinner"></div>
+                <h3 class="ocr-title">Analyse du document en cours</h3>
+                <p class="ocr-subtitle">Extraction et mise en forme du texte...</p>
+                <div class="ocr-progress">
+                    <div class="ocr-progress-bar"></div>
+                </div>
+            </div>
+        `;
 
         const poll = async () => {
             try {
@@ -801,20 +813,26 @@
 
                 const data = await res.json();
 
-                // Show actual status for debugging
-                contentDiv.innerText = `Processing OCR... Status: ${data.status} (v3)`;
-
                 if (data.status === 'completed') {
                     loadPages();
                 } else if (data.status === 'failed') {
-                    contentDiv.innerText = "Processing failed. Please try a different PDF.";
+                    contentDiv.innerHTML = `
+                        <div class="ocr-loading ocr-error">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            <h3 class="ocr-title">Échec du traitement</h3>
+                            <p class="ocr-subtitle">Impossible de traiter ce document. Essayez un autre PDF.</p>
+                        </div>
+                    `;
                 } else {
                     // Continue polling if pending/processing
                     setTimeout(poll, 2000);
                 }
             } catch (e) {
                 console.error(e);
-                contentDiv.innerText = `Error: ${e.message}. Retrying...`;
                 // Retry slower on error
                 setTimeout(poll, 5000);
             }

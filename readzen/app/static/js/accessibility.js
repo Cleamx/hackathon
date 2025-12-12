@@ -21,10 +21,34 @@ class AccessibilityManager {
 
         this.preferences = { ...defaults, ...JSON.parse(localStorage.getItem('readzen_prefs') || '{}') };
 
-        // Define common phonemes
-        this.phonemeList = ['an', 'on', 'in', 'ou', 'oi', 'eu', 'ai', 'ui', 'gn', 'ill', 'eau', 'au', 'en'];
-        // Default colors if not set
-        this.defaultColors = ['#E57373', '#64B5F6', '#81C784', '#FFD54F', '#BA68C8', '#4DB6AC', '#FF8A65', '#A1887F', '#90A4AE', '#9575CD', '#4DD0E1', '#AED581', '#FFB74D'];
+        // Define common phonemes avec couleurs pédagogiques
+        this.phonemeList = ['a', 'é', 'è', 'ai', 'ei', 'o', 'au', 'eau', 'ou', 'oi', 'an', 'en', 'am', 'on', 'om', 'in', 'eu', 'gn', 'ill'];
+        
+        // Couleurs associées aux phonèmes (méthode pédagogique)
+        this.phonemeColors = {
+            'a': '#374151',      // Gris foncé - Base neutre
+            'é': '#22C55E',      // Vert
+            'è': '#16A34A',      // Vert foncé
+            'ai': '#22C55E',     // Vert
+            'ei': '#22C55E',     // Vert
+            'o': '#EAB308',      // Jaune
+            'au': '#EAB308',     // Jaune
+            'eau': '#EAB308',    // Jaune
+            'ou': '#DC2626',     // Rouge
+            'oi': '#1F2937',     // Noir (gras via CSS)
+            'an': '#F97316',     // Orange
+            'en': '#F97316',     // Orange
+            'am': '#F97316',     // Orange
+            'on': '#92400E',     // Marron
+            'om': '#92400E',     // Marron
+            'in': '#EC4899',     // Rose
+            'eu': '#8B5CF6',     // Violet
+            'gn': '#06B6D4',     // Cyan
+            'ill': '#3B82F6'     // Bleu
+        };
+        
+        // Default colors array (fallback)
+        this.defaultColors = Object.values(this.phonemeColors);
 
         // Profile Presets
         this.profiles = {
@@ -144,7 +168,9 @@ class AccessibilityManager {
 
         this.phonemeList.forEach((pho, index) => {
             const isActive = this.preferences.activePhonemes[pho] !== undefined;
-            const color = this.preferences.activePhonemes[pho] || this.defaultColors[index % this.defaultColors.length];
+            // Utiliser la couleur pédagogique définie, sinon fallback
+            const defaultColor = this.phonemeColors[pho] || this.defaultColors[index % this.defaultColors.length];
+            const color = this.preferences.activePhonemes[pho] || defaultColor;
 
             const div = document.createElement('div');
             div.className = 'phoneme-item';
@@ -156,6 +182,9 @@ class AccessibilityManager {
 
             const label = document.createElement('span');
             label.innerText = pho;
+            // Afficher la couleur sur le label pour preview
+            label.style.color = color;
+            label.style.fontWeight = pho === 'oi' ? 'bold' : 'normal';
 
             const colorInput = document.createElement('input');
             colorInput.type = 'color';
@@ -163,6 +192,7 @@ class AccessibilityManager {
             colorInput.value = color;
             // If checked, updating color updates the text immediately
             colorInput.onchange = (e) => {
+                label.style.color = e.target.value;
                 if (checkbox.checked) {
                     this.togglePhonemeItem(pho, true, e.target.value);
                 }

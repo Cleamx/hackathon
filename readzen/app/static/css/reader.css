@@ -709,3 +709,90 @@ body.font-dyslexic .page-content {
         padding: 0;
     }
 }
+
+/* ============================================
+   OCR Loading State
+   ============================================ */
+.ocr-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    text-align: center;
+    min-height: 400px;
+}
+
+.ocr-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: ocr-spin 1s linear infinite;
+    margin-bottom: 24px;
+}
+
+@keyframes ocr-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ocr-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin-bottom: 8px;
+}
+
+.ocr-subtitle {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    margin-bottom: 24px;
+}
+
+.ocr-progress {
+    width: 200px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.ocr-progress-bar {
+    height: 100%;
+    width: 30%;
+    background: var(--color-primary);
+    border-radius: 4px;
+    animation: ocr-progress 1.5s ease-in-out infinite;
+}
+
+@keyframes ocr-progress {
+    0% {
+        width: 0%;
+        margin-left: 0%;
+    }
+    50% {
+        width: 40%;
+        margin-left: 30%;
+    }
+    100% {
+        width: 0%;
+        margin-left: 100%;
+    }
+}
+
+/* Error State */
+.ocr-loading.ocr-error {
+    color: var(--color-danger, #EF4444);
+}
+
+.ocr-loading.ocr-error svg {
+    margin-bottom: 24px;
+    opacity: 0.8;
+}
+
+.ocr-loading.ocr-error .ocr-title {
+    color: var(--color-danger, #EF4444);
+}
