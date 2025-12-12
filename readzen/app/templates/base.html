@@ -7,7 +7,7 @@
     <title>ReadZen - Lecteur Intelligent</title>
     <script>
         // Appliquer le thème immédiatement pour éviter un flash
-        (function() {
+        (function () {
             try {
                 const prefs = JSON.parse(localStorage.getItem('readzen_prefs') || '{}');
                 const theme = prefs.theme || 'theme-light';
@@ -15,7 +15,7 @@
                 document.documentElement.classList.add(theme);
                 if (font === 'dyslexic') document.documentElement.classList.add('font-dyslexic');
                 if (font === 'lexend') document.documentElement.classList.add('font-lexend');
-            } catch(e) {}
+            } catch (e) { }
         })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
