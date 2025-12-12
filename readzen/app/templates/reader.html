@@ -109,7 +109,9 @@
             </button>
             <button class="tool-btn" id="fullscreen-btn" title="Plein écran">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                    <path
+                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                    </path>
                 </svg>
             </button>
         </div>
@@ -147,11 +149,18 @@
             <div id="summary-content" class="summary-body">Chargement...</div>
         </div>
 
-        <!-- Contenu de la page -->
-        <article id="page-content" class="page-content">
-            <div class="loading-spinner"></div>
-            <span class="loading-text">Chargement du document...</span>
-        </article>
+        <!-- Contenu de la page avec redimensionnement -->
+        <div class="page-content-wrapper">
+            <div class="page-content-resizable" id="page-resizable">
+                <div class="resize-handle resize-handle-left" id="resize-left"></div>
+                <article id="page-content" class="page-content">
+                    <div class="loading-spinner"></div>
+                    <span class="loading-text">Chargement du document...</span>
+                </article>
+                <div class="resize-handle resize-handle-right" id="resize-right"></div>
+            </div>
+        </div>
+        <div class="width-indicator" id="width-indicator"></div>
 
         <!-- Guide de lecture -->
         <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
@@ -190,7 +199,7 @@
     // ============================================
     // CACHE MANAGEMENT - Persistance localStorage
     // ============================================
-    
+
     function savePageToCache(pageNumber, content) {
         try {
             const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
@@ -207,7 +216,7 @@
             }
         }
     }
-    
+
     function loadPagesFromCache() {
         try {
             const expiry = localStorage.getItem(CACHE_EXPIRY_KEY);
@@ -216,7 +225,7 @@
                 clearPageCache();
                 return null;
             }
-            
+
             const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
                 const data = JSON.parse(cached);
@@ -228,7 +237,7 @@
         }
         return null;
     }
-    
+
     function clearPageCache() {
         localStorage.removeItem(CACHE_KEY);
         localStorage.removeItem(CACHE_EXPIRY_KEY);
@@ -238,36 +247,36 @@
     // ============================================
     // CASCADE PRELOADING - Chargement en cascade
     // ============================================
-    
+
     async function startCascadePreload() {
         if (isPreloading) {
             console.log('Cascade preload already in progress');
             return;
         }
-        
+
         isPreloading = true;
         console.log('Starting cascade preload for all pages...');
-        
+
         // Charger toutes les pages non chargées, une par une
         for (let i = 0; i < pageCount; i++) {
             if (!pages[i]) {
                 console.log(`Cascade: loading page ${i}...`);
                 await loadPage(i);
-                
+
                 // Petit délai pour ne pas surcharger le serveur
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
-        
+
         isPreloading = false;
         console.log('Cascade preload complete! All pages loaded.');
         updatePreloadStatus();
     }
-    
+
     function updatePreloadStatus() {
         const loadedCount = pages.filter(p => p !== null && p !== undefined).length;
         const indicator = document.getElementById('preload-status');
-        
+
         if (loadedCount === pageCount) {
             if (indicator) indicator.style.display = 'none';
             console.log(`All ${pageCount} pages are now cached locally`);
@@ -279,7 +288,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         accessibility.init();
-        
+
         console.log("DOMContentLoaded - INITIAL_STATUS:", INITIAL_STATUS, "DOC_ID:", DOC_ID);
 
         if (INITIAL_STATUS === 'completed') {
@@ -500,7 +509,7 @@
         const summaryToggle = document.getElementById('summary-toggle');
         const summaryPanel = document.getElementById('summary-panel');
         const closeSummary = document.getElementById('close-summary');
-        
+
         if (summaryToggle && summaryPanel) {
             summaryToggle.addEventListener('click', async () => {
                 if (summaryPanel.style.display === 'none') {
@@ -545,14 +554,14 @@
     async function loadPages() {
         try {
             console.log("Loading pages for document", DOC_ID);
-            
+
             // 1. Vérifier le cache localStorage d'abord
             const cachedData = loadPagesFromCache();
-            
+
             if (cachedData && cachedData._pageCount) {
                 pageCount = cachedData._pageCount;
                 pages = new Array(pageCount).fill(null);
-                
+
                 // Restaurer les pages depuis le cache
                 let cachedCount = 0;
                 for (let i = 0; i < pageCount; i++) {
@@ -561,16 +570,16 @@
                         cachedCount++;
                     }
                 }
-                
+
                 console.log(`Restored ${cachedCount}/${pageCount} pages from cache`);
-                
+
                 // Charger la progression et afficher
                 loadProgress();
                 await renderPage();
-                
+
                 const controls = document.getElementById('pagination-controls');
                 if (controls) controls.style.display = 'flex';
-                
+
                 // Continuer le préchargement des pages manquantes en cascade
                 if (cachedCount < pageCount) {
                     startCascadePreload();
@@ -579,18 +588,18 @@
                 }
                 return;
             }
-            
+
             // 2. Sinon, charger depuis l'API
             const res = await fetch(`/api/documents/${DOC_ID}/text`);
             const data = await res.json();
-            
+
             console.log("API response:", data);
 
             // Déterminer les pages et leur nombre
             if (data.pages && data.pages.length > 0) {
                 pages = data.pages;
                 pageCount = data.page_count || data.pages.length;
-                
+
                 // Sauvegarder toutes les pages reçues dans le cache
                 for (let i = 0; i < pages.length; i++) {
                     if (pages[i]) {
@@ -605,7 +614,7 @@
                 pages = ["No text content found."];
                 pageCount = 1;
             }
-            
+
             console.log("Page count:", pageCount);
             console.log("Pages loaded:", pages.length);
 
@@ -613,10 +622,10 @@
             loadProgress();
 
             await renderPage();
-            
+
             const controls = document.getElementById('pagination-controls');
             if (controls) controls.style.display = 'flex';
-            
+
             // Démarrer le préchargement en cascade pour toutes les pages
             if (pageCount > 1) {
                 startCascadePreload();
@@ -634,18 +643,18 @@
          * Retourne le contenu HTML de la page.
          */
         console.log(`loadPage called for page ${pageNumber}`);
-        
+
         if (pageNumber < 0 || pageNumber >= pageCount) {
-            console.log(`Page ${pageNumber} out of range (0-${pageCount-1})`);
+            console.log(`Page ${pageNumber} out of range (0-${pageCount - 1})`);
             return null;
         }
-        
+
         // Si déjà chargée, retourner le contenu
         if (pages[pageNumber]) {
             console.log(`Page ${pageNumber} already loaded, returning cached content`);
             return pages[pageNumber];
         }
-        
+
         // Éviter les chargements en double
         if (loadingPage === pageNumber) {
             console.log(`Page ${pageNumber} is already being loaded, waiting...`);
@@ -655,30 +664,30 @@
             }
             return pages[pageNumber];
         }
-        
+
         loadingPage = pageNumber;
-        
+
         try {
             console.log(`Fetching page ${pageNumber} from API...`);
             const res = await fetch(`/api/documents/${DOC_ID}/page/${pageNumber}`);
-            
+
             if (!res.ok) {
                 const errorText = await res.text();
                 console.error(`Failed to load page ${pageNumber}: ${res.status} - ${errorText}`);
                 throw new Error(`Failed to load page ${pageNumber}`);
             }
-            
+
             const data = await res.json();
             pages[pageNumber] = data.content;
-            
+
             // Sauvegarder dans le cache localStorage
             savePageToCache(pageNumber, data.content);
-            
+
             console.log(`Page ${pageNumber} loaded successfully (${data.content?.length || 0} chars)`);
-            
+
             // Mettre à jour l'indicateur de préchargement
             updatePreloadStatus();
-            
+
             return data.content;
         } catch (e) {
             console.error(`Error loading page ${pageNumber}:`, e);
@@ -702,7 +711,7 @@
             console.log(`Page ${pageNumber} already loaded, no need to preload`);
             return;
         }
-        
+
         // Charger silencieusement (sans await)
         console.log(`Starting background load for page ${pageNumber}`);
         loadPage(pageNumber);
@@ -710,7 +719,7 @@
 
     async function renderPage() {
         console.log(`renderPage called, currentPage=${currentPage}, pageCount=${pageCount}`);
-        
+
         if (pageCount === 0) {
             console.log("No pages to render");
             return;
@@ -718,15 +727,15 @@
 
         const contentDiv = document.getElementById('page-content');
         let pageText = pages[currentPage];
-        
+
         console.log(`Current page ${currentPage} content: ${pageText ? 'loaded' : 'not loaded'}`);
-        
+
         // Si la page n'est pas encore chargée, la charger
         if (!pageText) {
             contentDiv.innerHTML = '<div class="loading-spinner"></div> Chargement de la page...';
             console.log(`Loading page ${currentPage}...`);
             pageText = await loadPage(currentPage);
-            
+
             if (!pageText) {
                 contentDiv.innerText = "Erreur lors du chargement de la page.";
                 return;
@@ -745,7 +754,7 @@
 
         const next = document.getElementById('next-page');
         if (next) next.disabled = currentPage >= pageCount - 1;
-        
+
         console.log(`Navigation: prev disabled=${currentPage === 0}, next disabled=${currentPage >= pageCount - 1}`);
 
         // Reading Time Update
@@ -753,19 +762,19 @@
 
         // Extract keywords for tags
         extractKeywords(pageText);
-        
+
         // Save reading progress
         saveProgress();
 
         // Scroll to top
         window.scrollTo(0, 0);
-        
+
         // En mode plein écran, scroller le conteneur
         const readerLayout = document.querySelector('.reader-layout');
         if (document.fullscreenElement && readerLayout) {
             readerLayout.scrollTop = 0;
         }
-        
+
         // Re-apply styles that might be reset by innerHTML replacement
         const savedLine = localStorage.getItem('readzen_line_height');
         if (savedLine) updateLineHeight(savedLine);
@@ -792,7 +801,7 @@
         if (!contentDiv) return;
 
         console.log("Starting OCR tracking for doc " + docId);
-        
+
         // Afficher un loader élégant
         contentDiv.innerHTML = `
             <div class="ocr-loading">
@@ -985,6 +994,126 @@
             setTextAlign(savedAlign);
         }
     }
+
+    // ============================================
+    // PAGE WIDTH RESIZING - Redimensionnement de la largeur
+    // ============================================
+
+    function initPageResizing() {
+        const resizable = document.getElementById('page-resizable');
+        const resizeLeft = document.getElementById('resize-left');
+        const resizeRight = document.getElementById('resize-right');
+        const widthIndicator = document.getElementById('width-indicator');
+
+        if (!resizable || !resizeLeft || !resizeRight) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+        let currentHandle = null;
+
+        // Restore saved width from localStorage
+        const savedWidth = localStorage.getItem('readzen_page_width');
+        if (savedWidth) {
+            resizable.style.width = savedWidth + 'px';
+        }
+
+        function showWidthIndicator(width) {
+            widthIndicator.textContent = `${Math.round(width)}px`;
+            widthIndicator.classList.add('visible');
+        }
+
+        function hideWidthIndicator() {
+            widthIndicator.classList.remove('visible');
+        }
+
+        function startResize(e, handle) {
+            e.preventDefault();
+            isResizing = true;
+            currentHandle = handle;
+            startX = e.clientX || e.touches?.[0]?.clientX || 0;
+            startWidth = resizable.offsetWidth;
+
+            handle.classList.add('active');
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+
+            showWidthIndicator(startWidth);
+        }
+
+        function doResize(e) {
+            if (!isResizing) return;
+
+            const clientX = e.clientX || e.touches?.[0]?.clientX || 0;
+            const deltaX = clientX - startX;
+
+            let newWidth;
+            if (currentHandle === resizeLeft) {
+                // Poignée gauche : inverser le delta
+                newWidth = startWidth - (deltaX * 2);
+            } else {
+                // Poignée droite : delta normal
+                newWidth = startWidth + (deltaX * 2);
+            }
+
+            // Limites min/max
+            const minWidth = 320;
+            const maxWidth = window.innerWidth - 48;
+            newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+
+            resizable.style.width = newWidth + 'px';
+            showWidthIndicator(newWidth);
+        }
+
+        function stopResize() {
+            if (!isResizing) return;
+
+            isResizing = false;
+
+            // Save width to localStorage
+            const currentWidth = resizable.offsetWidth;
+            localStorage.setItem('readzen_page_width', currentWidth);
+
+            if (currentHandle) {
+                currentHandle.classList.remove('active');
+            }
+            currentHandle = null;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            hideWidthIndicator();
+        }
+
+        // Mouse events
+        resizeLeft.addEventListener('mousedown', (e) => startResize(e, resizeLeft));
+        resizeRight.addEventListener('mousedown', (e) => startResize(e, resizeRight));
+
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        // Touch events for mobile
+        resizeLeft.addEventListener('touchstart', (e) => startResize(e, resizeLeft), { passive: false });
+        resizeRight.addEventListener('touchstart', (e) => startResize(e, resizeRight), { passive: false });
+
+        document.addEventListener('touchmove', doResize, { passive: false });
+        document.addEventListener('touchend', stopResize);
+
+        // Double-click to reset to default width
+        resizeLeft.addEventListener('dblclick', resetWidth);
+        resizeRight.addEventListener('dblclick', resetWidth);
+
+        function resetWidth() {
+            resizable.style.width = '720px';
+            localStorage.setItem('readzen_page_width', 720);
+
+            // Show feedback
+            showWidthIndicator(720);
+            setTimeout(hideWidthIndicator, 800);
+        }
+    }
+
+    // Initialize resize functionality after DOM is ready
+    document.addEventListener('DOMContentLoaded', initPageResizing);
 
 </script>
 {% endblock %}

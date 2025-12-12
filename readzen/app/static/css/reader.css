@@ -26,7 +26,7 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 50px;
-    box-shadow: 
+    box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.08),
         0 1px 3px rgba(0, 0, 0, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -196,10 +196,11 @@ body.theme-sepia .reader-toolbar {
    Main Reading Area
    ============================================ */
 .reader-main {
-    max-width: 720px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 120px 24px 100px;
+    padding: 120px 60px 100px;
     position: relative;
+    overflow: visible;
 }
 
 /* Container for the page content - needed for ruler positioning */
@@ -238,6 +239,100 @@ body.theme-sepia .reader-toolbar {
     color: var(--color-primary);
 }
 
+/* Page Content Resizable Wrapper */
+.page-content-wrapper {
+    position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    overflow: visible;
+}
+
+.page-content-resizable {
+    position: relative;
+    width: 720px;
+    min-width: 320px;
+    max-width: 100%;
+    overflow: visible;
+}
+
+/* Resize Handles */
+.resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    cursor: ew-resize;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    background: transparent;
+}
+
+.resize-handle::before {
+    content: '';
+    width: 4px;
+    height: 60px;
+    background: var(--color-primary, #6366f1);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+    opacity: 1;
+}
+
+.resize-handle:hover::before,
+.resize-handle.active::before {
+    height: 100px;
+    width: 6px;
+    background: var(--color-primary, #6366f1);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}
+
+/* Show handles only when hovering near the edges of the content */
+.page-content-resizable:hover .resize-handle {
+    opacity: 0.5;
+}
+
+.resize-handle-left {
+    left: -24px;
+}
+
+.resize-handle-right {
+    right: -24px;
+}
+
+/* Width indicator tooltip */
+.width-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.width-indicator.visible {
+    opacity: 1;
+}
+
 /* Page Content */
 .page-content {
     background: var(--color-surface);
@@ -252,30 +347,30 @@ body.theme-sepia .reader-toolbar {
     -webkit-hyphens: auto;
     position: relative;
     min-height: 60vh;
-    max-width: 720px;
-    margin: 0 auto;
-    
+    width: 100%;
+    box-sizing: border-box;
+
     /* Empêcher le débordement */
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-word;
     overflow: hidden;
-    
+
     /* Subtle book shadow */
-    box-shadow: 
-        0 1px 1px rgba(0,0,0,0.02),
-        0 2px 4px rgba(0,0,0,0.02),
-        0 4px 8px rgba(0,0,0,0.02),
-        0 8px 16px rgba(0,0,0,0.02),
-        0 16px 32px rgba(0,0,0,0.02);
+    box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.02),
+        0 2px 4px rgba(0, 0, 0, 0.02),
+        0 4px 8px rgba(0, 0, 0, 0.02),
+        0 8px 16px rgba(0, 0, 0, 0.02),
+        0 16px 32px rgba(0, 0, 0, 0.02);
 }
 
 body.theme-dark .page-content {
-    box-shadow: 
-        0 1px 1px rgba(0,0,0,0.1),
-        0 2px 4px rgba(0,0,0,0.1),
-        0 4px 8px rgba(0,0,0,0.08),
-        0 8px 16px rgba(0,0,0,0.06);
+    box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.06);
 }
 
 body.theme-sepia .page-content {
@@ -359,7 +454,9 @@ body.theme-sepia .word-active {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ============================================
@@ -436,13 +533,11 @@ body.theme-sepia .word-active {
     left: 0;
     right: 0;
     height: 36px;
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(99, 102, 241, 0.12) 20%,
-        rgba(99, 102, 241, 0.12) 80%,
-        transparent 100%
-    );
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(99, 102, 241, 0.12) 20%,
+            rgba(99, 102, 241, 0.12) 80%,
+            transparent 100%);
     pointer-events: none;
     z-index: 80;
     border-radius: 4px;
@@ -450,23 +545,19 @@ body.theme-sepia .word-active {
 }
 
 body.theme-sepia .reading-ruler {
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(217, 119, 6, 0.15) 20%,
-        rgba(217, 119, 6, 0.15) 80%,
-        transparent 100%
-    );
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(217, 119, 6, 0.15) 20%,
+            rgba(217, 119, 6, 0.15) 80%,
+            transparent 100%);
 }
 
 body.theme-dark .reading-ruler {
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(139, 92, 246, 0.2) 20%,
-        rgba(139, 92, 246, 0.2) 80%,
-        transparent 100%
-    );
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(139, 92, 246, 0.2) 20%,
+            rgba(139, 92, 246, 0.2) 80%,
+            transparent 100%);
 }
 
 /* ============================================
@@ -693,6 +784,7 @@ body.font-dyslexic .page-content {
    Print Styles
    ============================================ */
 @media print {
+
     .reader-toolbar,
     .pagination-bar,
     .tags-row,
@@ -773,10 +865,12 @@ body.font-dyslexic .page-content {
         width: 0%;
         margin-left: 0%;
     }
+
     50% {
         width: 40%;
         margin-left: 30%;
     }
+
     100% {
         width: 0%;
         margin-left: 100%;
