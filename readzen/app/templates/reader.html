@@ -107,6 +107,12 @@
                     <circle cx="18" cy="18" r="2"></circle>
                 </svg>
             </button>
+            <button class="tool-btn" id="search-toggle" title="Rechercher dans le document">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
             <button class="tool-btn" id="fullscreen-btn" title="Plein écran">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path
@@ -114,6 +120,30 @@
                     </path>
                 </svg>
             </button>
+        </div>
+    </div>
+
+    <!-- Panneau de recherche -->
+    <div class="search-panel" id="search-panel" style="display: none;">
+        <div class="search-input-wrapper">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-input" class="search-input" placeholder="Rechercher... (même avec fautes)">
+            <span class="search-results-count" id="search-results-count"></span>
+            <button class="search-nav-btn" id="search-prev" title="Résultat précédent">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </button>
+            <button class="search-nav-btn" id="search-next" title="Résultat suivant">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            <button class="search-close-btn" id="search-close" title="Fermer">×</button>
         </div>
     </div>
 
@@ -157,13 +187,12 @@
                     <div class="loading-spinner"></div>
                     <span class="loading-text">Chargement du document...</span>
                 </article>
+                <!-- Guide de lecture (à l'intérieur pour alignement correct) -->
+                <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
                 <div class="resize-handle resize-handle-right" id="resize-right"></div>
             </div>
         </div>
         <div class="width-indicator" id="width-indicator"></div>
-
-        <!-- Guide de lecture -->
-        <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
     </div>
 
     <!-- Pagination fixe en bas -->
@@ -1114,6 +1143,309 @@
 
     // Initialize resize functionality after DOM is ready
     document.addEventListener('DOMContentLoaded', initPageResizing);
+
+    // ============================================
+    // FUZZY SEARCH - Recherche avec tolérance aux fautes
+    // ============================================
+
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+    let originalContent = '';
+
+    // Distance de Levenshtein pour la recherche floue
+    function levenshteinDistance(str1, str2) {
+        const m = str1.length;
+        const n = str2.length;
+        const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+        for (let i = 0; i <= m; i++) dp[i][0] = i;
+        for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+        for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+                const cost = str1[i - 1].toLowerCase() === str2[j - 1].toLowerCase() ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,      // deletion
+                    dp[i][j - 1] + 1,      // insertion
+                    dp[i - 1][j - 1] + cost // substitution
+                );
+            }
+        }
+        return dp[m][n];
+    }
+
+    // Calcule un score de similarité (0-1)
+    function similarityScore(str1, str2) {
+        const maxLen = Math.max(str1.length, str2.length);
+        if (maxLen === 0) return 1;
+        const distance = levenshteinDistance(str1, str2);
+        return 1 - (distance / maxLen);
+    }
+
+    // Recherche floue dans le texte
+    function fuzzySearch(searchTerm, text) {
+        if (!searchTerm || searchTerm.length < 2) return [];
+
+        const matches = [];
+        const searchLower = searchTerm.toLowerCase();
+        const words = text.split(/(\s+)/); // Garde les espaces
+
+        let position = 0;
+
+        for (let i = 0; i < words.length; i++) {
+            const word = words[i];
+            const wordClean = word.replace(/[^\wàâäéèêëïîôùûüç'-]/gi, '');
+
+            if (wordClean.length >= 2) {
+                // Correspondance exacte (insensible à la casse)
+                if (wordClean.toLowerCase().includes(searchLower)) {
+                    matches.push({ start: position, end: position + word.length, word: word, score: 1 });
+                }
+                // Correspondance floue
+                else if (searchTerm.length >= 3) {
+                    const score = similarityScore(searchLower, wordClean.toLowerCase());
+                    // Seuil de similarité plus strict (> 0.7 = très similaire)
+                    if (score > 0.7 || (searchTerm.length >= 5 && score > 0.65)) {
+                        matches.push({ start: position, end: position + word.length, word: word, score: score });
+                    }
+                }
+            }
+            position += word.length;
+        }
+
+        // Trier par position
+        return matches.sort((a, b) => a.start - b.start);
+    }
+
+    // Surligne les résultats dans le HTML
+    function highlightSearchResults(searchTerm) {
+        const contentDiv = document.getElementById('page-content');
+        if (!contentDiv) return;
+
+        // Sauvegarder le contenu original si pas encore fait
+        if (!originalContent) {
+            originalContent = contentDiv.innerHTML;
+        }
+
+        // Nettoyer les anciens highlights
+        clearHighlights();
+
+        if (!searchTerm || searchTerm.length < 2) {
+            updateSearchCount(0, 0);
+            return;
+        }
+
+        // Obtenir le texte brut pour la recherche
+        const textContent = contentDiv.innerText;
+
+        // Trouver les correspondances
+        searchMatches = fuzzySearch(searchTerm, textContent);
+
+        if (searchMatches.length === 0) {
+            updateSearchCount(0, 0);
+            return;
+        }
+
+        // Approche simplifiée : parcourir les spans de mots existants
+        const wordSpans = contentDiv.querySelectorAll('.read-word');
+        const searchLower = searchTerm.toLowerCase();
+        let matchCount = 0;
+
+        wordSpans.forEach(span => {
+            const wordText = span.textContent.replace(/[^\wàâäéèêëïîôùûüç'-]/gi, '');
+            if (wordText.length < 2) return;
+
+            const wordLower = wordText.toLowerCase();
+            let isMatch = false;
+
+            // Correspondance exacte
+            if (wordLower.includes(searchLower)) {
+                isMatch = true;
+            }
+            // Correspondance floue
+            else if (searchTerm.length >= 3) {
+                const score = similarityScore(searchLower, wordLower);
+                if (score > 0.7 || (searchTerm.length >= 5 && score > 0.65)) {
+                    isMatch = true;
+                }
+            }
+
+            if (isMatch) {
+                span.classList.add('search-highlight');
+                span.setAttribute('data-search-match', matchCount);
+                matchCount++;
+            }
+        });
+
+        // Si aucun span .read-word, fallback sur regex dans le HTML
+        if (matchCount === 0 && searchMatches.length > 0) {
+            // Utiliser une approche regex simple
+            let html = contentDiv.innerHTML;
+            const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedTerm})`, 'gi');
+
+            html = html.replace(regex, '<span class="search-highlight">$1</span>');
+            contentDiv.innerHTML = html;
+
+            // Recompter
+            matchCount = contentDiv.querySelectorAll('.search-highlight').length;
+        }
+
+        currentMatchIndex = 0;
+
+        // Mettre à jour le compteur
+        const totalMatches = contentDiv.querySelectorAll('.search-highlight').length;
+        if (totalMatches > 0) {
+            highlightCurrentMatch();
+            updateSearchCount(1, totalMatches);
+        } else {
+            updateSearchCount(0, 0);
+        }
+    }
+
+    function getAllHighlightElements() {
+        // Collecter tous les éléments surlignés dans l'ordre du DOM
+        return Array.from(document.querySelectorAll('.search-highlight'));
+    }
+
+    function highlightCurrentMatch() {
+        const highlights = getAllHighlightElements();
+
+        // Enlever le style "current" de tous
+        highlights.forEach(el => el.classList.remove('current'));
+
+        // Ajouter à l'élément actuel
+        if (highlights.length > 0 && currentMatchIndex >= 0 && currentMatchIndex < highlights.length) {
+            const current = highlights[currentMatchIndex];
+            current.classList.add('current');
+            // Scroll vers l'élément actuel
+            current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function clearHighlights() {
+        const contentDiv = document.getElementById('page-content');
+        if (!contentDiv) return;
+
+        document.querySelectorAll('.search-highlight').forEach(el => {
+            const text = el.textContent;
+            el.replaceWith(document.createTextNode(text));
+        });
+
+        // Normaliser le DOM (fusionner les nœuds texte adjacents)
+        contentDiv.normalize();
+
+        searchMatches = [];
+        currentMatchIndex = -1;
+    }
+
+    function updateSearchCount(current, total) {
+        const countEl = document.getElementById('search-results-count');
+        if (countEl) {
+            if (total === 0) {
+                countEl.textContent = '';
+            } else {
+                countEl.textContent = `${current}/${total}`;
+            }
+        }
+    }
+
+    function goToNextMatch() {
+        const highlights = getAllHighlightElements();
+        if (highlights.length === 0) return;
+        currentMatchIndex = (currentMatchIndex + 1) % highlights.length;
+        highlightCurrentMatch();
+        updateSearchCount(currentMatchIndex + 1, highlights.length);
+    }
+
+    function goToPrevMatch() {
+        const highlights = getAllHighlightElements();
+        if (highlights.length === 0) return;
+        currentMatchIndex = (currentMatchIndex - 1 + highlights.length) % highlights.length;
+        highlightCurrentMatch();
+        updateSearchCount(currentMatchIndex + 1, highlights.length);
+    }
+
+    function initSearch() {
+        const searchToggle = document.getElementById('search-toggle');
+        const searchPanel = document.getElementById('search-panel');
+        const searchInput = document.getElementById('search-input');
+        const searchClose = document.getElementById('search-close');
+        const searchPrev = document.getElementById('search-prev');
+        const searchNext = document.getElementById('search-next');
+
+        if (!searchToggle || !searchPanel) return;
+
+        let debounceTimer = null;
+
+        // Toggle search panel
+        searchToggle.addEventListener('click', () => {
+            const isVisible = searchPanel.style.display !== 'none';
+            searchPanel.style.display = isVisible ? 'none' : 'flex';
+            searchToggle.classList.toggle('active', !isVisible);
+
+            if (!isVisible) {
+                searchInput.focus();
+            } else {
+                clearHighlights();
+                searchInput.value = '';
+                updateSearchCount(0, 0);
+            }
+        });
+
+        // Close button
+        searchClose.addEventListener('click', () => {
+            searchPanel.style.display = 'none';
+            searchToggle.classList.remove('active');
+            clearHighlights();
+            searchInput.value = '';
+            updateSearchCount(0, 0);
+        });
+
+        // Search input with debounce
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                highlightSearchResults(e.target.value.trim());
+            }, 300);
+        });
+
+        // Navigation
+        searchNext.addEventListener('click', goToNextMatch);
+        searchPrev.addEventListener('click', goToPrevMatch);
+
+        // Keyboard shortcuts
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    goToPrevMatch();
+                } else {
+                    goToNextMatch();
+                }
+            } else if (e.key === 'Escape') {
+                searchPanel.style.display = 'none';
+                searchToggle.classList.remove('active');
+                clearHighlights();
+                searchInput.value = '';
+                updateSearchCount(0, 0);
+            }
+        });
+
+        // Ctrl+F global shortcut
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchPanel.style.display = 'flex';
+                searchToggle.classList.add('active');
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+    }
+
+    // Initialize search
+    document.addEventListener('DOMContentLoaded', initSearch);
 
 </script>
 {% endblock %}

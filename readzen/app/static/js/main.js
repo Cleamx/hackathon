@@ -59,10 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ruler = document.getElementById('reading-ruler');
     const toggleBtn = document.getElementById('ruler-toggle');
     const contentArea = document.getElementById('page-content');
-    const readerMain = document.querySelector('.reader-main');
+    const resizableContainer = document.getElementById('page-resizable');
     let rulerEnabled = false;
 
-    if (toggleBtn && ruler && contentArea) {
+    if (toggleBtn && ruler && contentArea && resizableContainer) {
         // Toggle Enable/Disable
         toggleBtn.addEventListener('click', () => {
             rulerEnabled = !rulerEnabled;
@@ -80,28 +80,26 @@ document.addEventListener('DOMContentLoaded', () => {
         contentArea.addEventListener('mousemove', (e) => {
             if (rulerEnabled) {
                 ruler.style.opacity = '1';
-                
-                const contentRect = contentArea.getBoundingClientRect();
-                const readerRect = readerMain.getBoundingClientRect();
-                
-                // Position relative to the reader-main container
-                const relativeY = e.clientY - readerRect.top;
-                
-                // Clamp within page-content bounds
-                const contentTop = contentArea.offsetTop;
-                const contentBottom = contentTop + contentArea.offsetHeight;
-                
-                let finalTop = relativeY - 18; // Center the ruler on cursor (36px height / 2)
-                
-                // Keep ruler within content bounds
-                if (finalTop < contentTop) finalTop = contentTop;
-                if (finalTop + 36 > contentBottom) finalTop = contentBottom - 36;
-                
+
+                const containerRect = resizableContainer.getBoundingClientRect();
+
+                // Position relative to the resizable container
+                const relativeY = e.clientY - containerRect.top;
+
+                // Center the ruler on cursor (36px height / 2)
+                let finalTop = relativeY - 18;
+
+                // Keep ruler within bounds
+                const maxTop = resizableContainer.offsetHeight - 36;
+                if (finalTop < 0) finalTop = 0;
+                if (finalTop > maxTop) finalTop = maxTop;
+
                 ruler.style.top = `${finalTop}px`;
-                
-                // Match the width and position of page-content
-                ruler.style.width = `${contentRect.width}px`;
-                ruler.style.left = `${contentArea.offsetLeft}px`;
+
+                // Ruler takes full width of resizable container
+                ruler.style.left = '0';
+                ruler.style.right = '0';
+                ruler.style.width = 'auto';
             }
         });
 
