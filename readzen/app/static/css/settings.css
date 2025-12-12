@@ -1,0 +1,317 @@
+/* ============================================
+   READZEN - Settings Page Styles
+   Clean, modern accessibility settings
+   ============================================ */
+
+/* Page Layout */
+.settings-container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+.settings-header {
+    margin-bottom: 40px;
+}
+
+.settings-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin-bottom: 8px;
+}
+
+.settings-subtitle {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+}
+
+/* Settings Cards */
+.settings-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.settings-card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-card-title svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+/* Option Buttons (Theme, Font) */
+.option-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.option-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-bg);
+    color: var(--color-text-main);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.option-btn:hover {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+}
+
+.option-btn.active {
+    border-color: var(--color-primary);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--color-primary);
+}
+
+.option-btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Theme Preview Icons */
+.theme-preview-light {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+.theme-preview-dark {
+    background: #1f2937;
+    border: 1px solid #374151;
+}
+
+.theme-preview-sepia {
+    background: #fdf6e3;
+    border: 1px solid #d7c9b1;
+}
+
+/* Font Preview */
+.font-preview {
+    font-size: 1.1rem;
+}
+
+.font-preview.font-dyslexic {
+    font-family: 'OpenDyslexic', sans-serif;
+}
+
+.font-preview.font-lexend {
+    font-family: 'Lexend', sans-serif;
+}
+
+/* Toggle Rows */
+.toggle-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.toggle-row:last-child {
+    border-bottom: none;
+}
+
+.toggle-info {
+    flex: 1;
+    padding-right: 16px;
+}
+
+.toggle-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+    margin-bottom: 4px;
+}
+
+.toggle-description {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+/* Modern Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-border);
+    border-radius: 28px;
+    transition: all 0.3s ease;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* Sub Options (collapsed by default) */
+.sub-options {
+    margin-top: 12px;
+    padding: 16px;
+    background: var(--color-bg);
+    border-radius: 12px;
+    display: none;
+}
+
+.sub-options.visible {
+    display: block;
+}
+
+.sub-option-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.sub-option-row:not(:last-child) {
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sub-option-label {
+    font-size: 0.85rem;
+    color: var(--color-text-main);
+}
+
+/* Mini Checkbox */
+.mini-checkbox {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+/* Phoneme Grid */
+.phoneme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+    display: none;
+}
+
+.phoneme-grid.visible {
+    display: grid;
+}
+
+.phoneme-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.phoneme-item:hover {
+    border-color: var(--color-primary);
+}
+
+.phoneme-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+}
+
+.phoneme-item input[type="color"] {
+    width: 24px;
+    height: 24px;
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* Section Divider */
+.section-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 16px 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .settings-container {
+        padding: 24px 16px 60px;
+    }
+    
+    .option-buttons {
+        flex-direction: column;
+    }
+    
+    .option-btn {
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+}

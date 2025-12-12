@@ -112,6 +112,9 @@ class AccessibilityManager {
     // --- UI Helpers ---
 
     applyTheme(theme) {
+        // Apply to both html and body for consistency
+        // document.documentElement.classList.remove('theme-light', 'theme-dark', 'theme-sepia');
+        // document.documentElement.classList.add(theme);
         document.body.classList.remove('theme-light', 'theme-dark', 'theme-sepia');
         document.body.classList.add(theme);
         this.preferences.theme = theme;
@@ -119,9 +122,17 @@ class AccessibilityManager {
     }
 
     applyFont(font) {
+        // Apply to both html and body for consistency
+        document.documentElement.classList.remove('font-dyslexic', 'font-lexend');
         document.body.classList.remove('font-dyslexic', 'font-lexend');
-        if (font === 'dyslexic') document.body.classList.add('font-dyslexic');
-        if (font === 'lexend') document.body.classList.add('font-lexend');
+        if (font === 'dyslexic') {
+            document.documentElement.classList.add('font-dyslexic');
+            document.body.classList.add('font-dyslexic');
+        }
+        if (font === 'lexend') {
+            document.documentElement.classList.add('font-lexend');
+            document.body.classList.add('font-lexend');
+        }
         this.preferences.font = font;
         this.save();
     }
@@ -419,9 +430,9 @@ class AccessibilityManager {
             const syllables = this.getSyllables(word);
             processed = syllables.map((syll, index) => {
                 let classes = ['syll'];
-                // Alternation
+                // Alternation - Rouge (1) et Bleu (2)
                 if (this.preferences.syllAlternation) {
-                    const altIndex = (index % 3) + 1;
+                    const altIndex = (index % 2) + 1;
                     classes.push(`syll-alt-${altIndex}`);
                 }
                 // Underline

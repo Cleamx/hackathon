@@ -281,7 +281,7 @@ body.theme-dark .doc-status.failed {
 
 body.theme-dark .doc-btn-read {
     background: var(--color-surface);
-    color: var(--color-bg);
+    color: #ffffff;
     border: 1px solid var(--color-border);
 }
 

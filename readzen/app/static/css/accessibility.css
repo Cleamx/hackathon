@@ -9,7 +9,8 @@
     font-family: 'Lexend', sans-serif !important;
 }
 
-/* Themes */
+/* Themes - Support for both html and body to prevent flash */
+/* html.theme-light, */
 body.theme-light {
     --bg-color: #ffffff;
     --text-color: #333333;
@@ -20,6 +21,7 @@ body.theme-light {
     --ruler-border: rgba(0, 0, 0, 0.2);
 }
 
+/* html.theme-dark, */
 body.theme-dark {
     --bg-color: #1a1a1a;
     --text-color: #e0e0e0;
@@ -30,6 +32,7 @@ body.theme-dark {
     --ruler-border: rgba(255, 255, 255, 0.2);
 }
 
+/* html.theme-sepia, */
 body.theme-sepia {
     --bg-color: #f4ecd8;
     --text-color: #5b4636;
@@ -38,6 +41,11 @@ body.theme-sepia {
     --card-bg: #fffbf0;
     --ruler-color: rgba(91, 70, 54, 0.1);
     --ruler-border: rgba(91, 70, 54, 0.2);
+}
+
+/* Apply background from html to prevent flash */
+html {
+    background-color: var(--bg-color, #ffffff);
 }
 
 /* Reading Ruler */
@@ -123,24 +131,16 @@ body.theme-sepia {
 
 /* Syllable Styles */
 .syll {
-    display: inline-block;
-    /* Allows separate styling but keeps flow */
+    display: inline;
 }
 
-/* Alternating Typography Mode */
+/* Alternating Color Mode - Rouge et Bleu */
 .syll-alt-1 {
-    font-weight: 700;
-    /* Bold */
+    color: #E53935;
 }
 
 .syll-alt-2 {
-    font-style: italic;
-    opacity: 0.9;
-}
-
-.syll-alt-3 {
-    opacity: 0.7;
-    /* Faded */
+    color: #1E88E5;
 }
 
 /* Underline Mode */

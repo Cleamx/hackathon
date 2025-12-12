@@ -73,7 +73,15 @@
             const res = await fetch('/api/documents/');
             const docs = await res.json();
 
+            // Cacher les boutons d'action si pas de documents
+            const libraryActions = document.querySelector('.library-actions');
+            
             if (docs.length === 0) {
+                // Cacher les boutons Sélectionner et Ajouter quand la bibliothèque est vide
+                if (libraryActions) {
+                    libraryActions.style.display = 'none';
+                }
+                
                 grid.innerHTML = `
                     <div class="library-empty">
                         <svg class="library-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -93,6 +101,11 @@
                         </a>
                     </div>`;
                 return;
+            }
+            
+            // Afficher les boutons d'action quand il y a des documents
+            if (libraryActions) {
+                libraryActions.style.display = 'flex';
             }
 
             // Show stats
@@ -272,9 +285,26 @@
         }
     }
 
+    // Fonction pour supprimer le cache localStorage d'un document
+    function clearDocumentCache(docId) {
+        const keysToRemove = [
+            `readzen_pages_${docId}`,
+            `readzen_pages_expiry_${docId}`,
+            `progress_${docId}`
+        ];
+        
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`Cache cleared: ${key}`);
+        });
+    }
+
     async function apiDelete(id) {
         const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Delete failed');
+        
+        // Supprimer le cache localStorage associé
+        clearDocumentCache(id);
     }
 </script>
 {% endblock %}

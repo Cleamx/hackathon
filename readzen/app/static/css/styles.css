@@ -62,6 +62,7 @@ body.theme-sepia {
 }
 
 body {
+    margin: 0;
     background-color: var(--color-bg);
     color: var(--color-text-main);
     font-family: var(--font-ui);

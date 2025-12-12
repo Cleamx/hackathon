@@ -1,312 +1,276 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/settings.css">
+{% endblock %}
+
 {% block content %}
-<div class="container" style="max-width: 600px;">
-    <h2>Paramètres d'Accessibilité</h2>
+<div class="settings-container">
+    <!-- Header -->
+    <div class="settings-header">
+        <h1 class="settings-title">Paramètres d'accessibilité</h1>
+        <p class="settings-subtitle">Personnalisez votre expérience de lecture</p>
+    </div>
 
+    <!-- Thème -->
     <div class="settings-card">
-        <h3>Profils Utilisateurs</h3>
-        <p class="hint">Sélectionnez un profil pré-configuré pour ajuster les paramètres automatiquement.</p>
-        <div class="option-group">
-            <button class="btn btn-outline" onclick="accessibility.setProfile('dyslexie')">Dyslexie</button>
-            <button class="btn btn-outline" onclick="accessibility.setProfile('malvoyance')">Malvoyance</button>
-            <button class="btn btn-outline" onclick="accessibility.setProfile('tda')">TDA/H</button>
-            <button class="btn btn-outline" onclick="accessibility.setProfile('fatigue')">Fatigue Visuelle</button>
-            <button class="btn btn-outline" onclick="accessibility.setProfile('lecture-rapide')">Lecture Rapide</button>
+        <h2 class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            Thème
+        </h2>
+        <div class="option-buttons" id="theme-options">
+            <button class="option-btn" data-theme="theme-light" onclick="selectTheme('theme-light')">
+                <div class="option-btn-icon theme-preview-light"></div>
+                <span>Clair</span>
+            </button>
+            <button class="option-btn" data-theme="theme-dark" onclick="selectTheme('theme-dark')">
+                <div class="option-btn-icon theme-preview-dark"></div>
+                <span>Sombre</span>
+            </button>
+            <button class="option-btn" data-theme="theme-sepia" onclick="selectTheme('theme-sepia')">
+                <div class="option-btn-icon theme-preview-sepia"></div>
+                <span>Sépia</span>
+            </button>
         </div>
     </div>
 
+    <!-- Police -->
     <div class="settings-card">
-        <h3>Thème</h3>
-        <div class="option-group">
-            <button class="btn btn-outline" onclick="accessibility.applyTheme('theme-light')">Clair</button>
-            <button class="btn btn-outline" onclick="accessibility.applyTheme('theme-dark')">Sombre</button>
-            <button class="btn btn-outline" onclick="accessibility.applyTheme('theme-sepia')">Sépia</button>
+        <h2 class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                <line x1="9" y1="20" x2="15" y2="20"></line>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+            Police de lecture
+        </h2>
+        <div class="option-buttons" id="font-options">
+            <button class="option-btn" data-font="default" onclick="selectFont('default')">
+                <span class="font-preview">Aa</span>
+                <span>Défaut</span>
+            </button>
+            <button class="option-btn" data-font="dyslexic" onclick="selectFont('dyslexic')">
+                <span class="font-preview font-dyslexic">Aa</span>
+                <span>OpenDyslexic</span>
+            </button>
+            <button class="option-btn" data-font="lexend" onclick="selectFont('lexend')">
+                <span class="font-preview font-lexend">Aa</span>
+                <span>Lexend</span>
+            </button>
         </div>
     </div>
 
+    <!-- Aide à la lecture -->
     <div class="settings-card">
-        <h3>Police</h3>
-        <div class="option-group">
-            <button class="btn btn-outline" onclick="accessibility.applyFont('default')">Défaut</button>
-            <button class="btn btn-outline font-dyslexic"
-                onclick="accessibility.applyFont('dyslexic')">OpenDyslexic</button>
-            <button class="btn btn-outline font-lexend" onclick="accessibility.applyFont('lexend')">Lexend</button>
-        </div>
-    </div>
-
-    <div class="settings-card">
-        <h3>Outils Dyslexie</h3>
-
-        <!-- Syllables Section -->
-        <div class="feature-block">
-            <div class="option-row">
-                <label class="feature-title">Segmentation Syllabique</label>
-                <label class="switch">
-                    <input type="checkbox" id="syllable-toggle" onchange="accessibility.toggleSyllabic(this.checked)">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <div id="syllable-options" class="sub-options" style="display: none;">
-                <div class="option-row">
-                    <label>Alternance typographique</label>
-                    <input type="checkbox" id="syll-alt-toggle"
-                        onchange="accessibility.setSyllableOption('alternation', this.checked)">
+        <h2 class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            Aide à la lecture
+        </h2>
+        
+        <div class="toggle-section">
+            <!-- Syllabique -->
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <div class="toggle-label">Segmentation syllabique</div>
+                    <div class="toggle-description">Découpe les mots en syllabes pour faciliter la lecture</div>
                 </div>
-                <div class="option-row">
-                    <label>Souligner les syllabes</label>
-                    <input type="checkbox" id="syll-underline-toggle"
-                        onchange="accessibility.setSyllableOption('underline', this.checked)">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="syllable-toggle" onchange="toggleSyllabic(this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <!-- Sub-options syllabes -->
+            <div id="syllable-options" class="sub-options">
+                <div class="sub-option-row">
+                    <span class="sub-option-label">Alternance de couleurs</span>
+                    <input type="checkbox" class="mini-checkbox" id="syll-alt-toggle" 
+                           onchange="accessibility.setSyllableOption('alternation', this.checked)">
+                </div>
+                <div class="sub-option-row">
+                    <span class="sub-option-label">Souligner les syllabes</span>
+                    <input type="checkbox" class="mini-checkbox" id="syll-underline-toggle" 
+                           onchange="accessibility.setSyllableOption('underline', this.checked)">
                 </div>
             </div>
-        </div>
 
-        <hr class="divider">
-
-        <!-- Phonemes Section -->
-        <div class="feature-block">
-            <h4>Phonèmes</h4>
-            <div class="option-row">
-                <label>Activer les phonèmes</label>
-                <label class="switch">
-                    <input type="checkbox" id="phoneme-toggle" onchange="accessibility.togglePhonemes(this.checked)">
-                    <span class="slider round"></span>
+            <!-- Lettres muettes -->
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <div class="toggle-label">Lettres muettes</div>
+                    <div class="toggle-description">Affiche les lettres muettes en gris pour les identifier</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="silent-toggle" onchange="accessibility.toggleSilentLetters(this.checked)">
+                    <span class="toggle-slider"></span>
                 </label>
             </div>
-            <div id="phoneme-list" class="phoneme-grid" style="display: none;">
-                <!-- Generated by JS -->
-            </div>
-        </div>
-
-        <hr class="divider">
-
-        <hr class="divider">
-
-        <!-- Silent Letters Section -->
-        <div class="feature-block">
-            <div class="option-row">
-                <label class="feature-title">Lettres Muettes</label>
-                <label class="switch">
-                    <input type="checkbox" id="silent-toggle"
-                        onchange="accessibility.toggleSilentLetters(this.checked)">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-            <p class="hint">Affiche les lettres muettes en gris clair/italique.</p>
         </div>
     </div>
 
-    <!-- Semantic / ADHD Section -->
+    <!-- Phonèmes -->
     <div class="settings-card">
-        <h3>Compréhension & Sémantique (TDA/H)</h3>
-
-        <div class="feature-block">
-            <div class="option-row">
-                <label class="feature-title">Noms Propres (Personnages/Lieux)</label>
-                <label class="switch">
-                    <input type="checkbox" id="semantic-proper-toggle"
-                        onchange="accessibility.toggleSemantic('proper', this.checked)">
-                    <span class="slider round"></span>
+        <h2 class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+            Phonèmes
+        </h2>
+        
+        <div class="toggle-section">
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <div class="toggle-label">Colorer les phonèmes</div>
+                    <div class="toggle-description">Met en couleur les sons complexes (an, on, ou...)</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="phoneme-toggle" onchange="togglePhonemes(this.checked)">
+                    <span class="toggle-slider"></span>
                 </label>
             </div>
         </div>
-
-        <div class="feature-block">
-            <div class="option-row">
-                <label class="feature-title">Dates et Chiffres</label>
-                <label class="switch">
-                    <input type="checkbox" id="semantic-date-toggle"
-                        onchange="accessibility.toggleSemantic('date', this.checked)">
-                    <span class="slider round"></span>
-                </label>
-            </div>
+        
+        <div id="phoneme-list" class="phoneme-grid">
+            <!-- Généré par JS -->
         </div>
+    </div>
 
-        <div class="feature-block">
-            <div class="option-row">
-                <label class="feature-title">Mots Longs / Concepts</label>
-                <label class="switch">
-                    <input type="checkbox" id="semantic-concept-toggle"
-                        onchange="accessibility.toggleSemantic('concept', this.checked)">
-                    <span class="slider round"></span>
+    <!-- Compréhension -->
+    <div class="settings-card">
+        <h2 class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Aide à la compréhension
+        </h2>
+        
+        <div class="toggle-section">
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <div class="toggle-label">Noms propres</div>
+                    <div class="toggle-description">Met en évidence les personnages et lieux</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="semantic-proper-toggle" 
+                           onchange="accessibility.toggleSemantic('proper', this.checked)">
+                    <span class="toggle-slider"></span>
                 </label>
             </div>
-            <p class="hint">Met en évidence les mots de plus de 8 lettres.</p>
+
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <div class="toggle-label">Dates et chiffres</div>
+                    <div class="toggle-description">Surligne les informations temporelles et numériques</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="semantic-date-toggle" 
+                           onchange="accessibility.toggleSemantic('date', this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-info">
+                    <div class="toggle-label">Mots complexes</div>
+                    <div class="toggle-description">Identifie les mots longs (plus de 8 lettres)</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="semantic-concept-toggle" 
+                           onchange="accessibility.toggleSemantic('concept', this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Initialize toggle state
-    // Initialize toggle state
+    // Sélection du thème
+    function selectTheme(theme) {
+        accessibility.applyTheme(theme);
+        updateThemeButtons();
+    }
+    
+    // Sélection de la police
+    function selectFont(font) {
+        accessibility.applyFont(font);
+        updateFontButtons();
+    }
+    
+    // Toggle syllabique avec affichage des options
+    function toggleSyllabic(checked) {
+        accessibility.toggleSyllabic(checked);
+        const options = document.getElementById('syllable-options');
+        options.classList.toggle('visible', checked);
+    }
+    
+    // Toggle phonèmes avec affichage de la grille
+    function togglePhonemes(checked) {
+        accessibility.togglePhonemes(checked);
+        const grid = document.getElementById('phoneme-list');
+        grid.classList.toggle('visible', checked);
+    }
+    
+    // Mise à jour visuelle des boutons de thème
+    function updateThemeButtons() {
+        const currentTheme = accessibility.preferences.theme;
+        document.querySelectorAll('#theme-options .option-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+        });
+    }
+    
+    // Mise à jour visuelle des boutons de police
+    function updateFontButtons() {
+        const currentFont = accessibility.preferences.font;
+        document.querySelectorAll('#font-options .option-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.font === currentFont);
+        });
+    }
+    
+    // Initialisation
     document.addEventListener('DOMContentLoaded', () => {
-        // Init happens inside accessibility.js, but we need to update UI checkboxes
         const prefs = accessibility.preferences;
-
-        // Syllables
+        
+        // Thème et police
+        updateThemeButtons();
+        updateFontButtons();
+        
+        // Syllabes
         document.getElementById('syllable-toggle').checked = prefs.syllabic;
-        document.getElementById('syllable-options').style.display = prefs.syllabic ? 'block' : 'none';
+        document.getElementById('syllable-options').classList.toggle('visible', prefs.syllabic);
         document.getElementById('syll-alt-toggle').checked = prefs.syllAlternation;
         document.getElementById('syll-underline-toggle').checked = prefs.syllUnderline;
-
-        // Phonemes
+        
+        // Lettres muettes
+        document.getElementById('silent-toggle').checked = prefs.silentLetters;
+        
+        // Phonèmes
         document.getElementById('phoneme-toggle').checked = prefs.phonemesEnabled;
-        document.getElementById('phoneme-list').style.display = prefs.phonemesEnabled ? 'grid' : 'none';
+        document.getElementById('phoneme-list').classList.toggle('visible', prefs.phonemesEnabled);
         accessibility.renderPhonemeList('phoneme-list');
-
-        // Silent
-        if (document.getElementById('silent-toggle')) {
-            document.getElementById('silent-toggle').checked = prefs.silentLetters;
-        }
-
-        // Semantic
-        if (document.getElementById('semantic-proper-toggle')) {
-            document.getElementById('semantic-proper-toggle').checked = prefs.semanticProper;
-            document.getElementById('semantic-date-toggle').checked = prefs.semanticDate;
-            document.getElementById('semantic-concept-toggle').checked = prefs.semanticConcept;
-        }
+        
+        // Sémantique
+        document.getElementById('semantic-proper-toggle').checked = prefs.semanticProper;
+        document.getElementById('semantic-date-toggle').checked = prefs.semanticDate;
+        document.getElementById('semantic-concept-toggle').checked = prefs.semanticConcept;
     });
 </script>
-
-<style>
-    .settings-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .feature-block {
-        margin-bottom: 15px;
-    }
-
-    .feature-title {
-        font-weight: 600;
-        font-size: 1.05rem;
-    }
-
-    .sub-options {
-        margin-top: 10px;
-        margin-left: 20px;
-        padding-left: 10px;
-        border-left: 2px solid var(--border-color);
-        background: rgba(0, 0, 0, 0.02);
-        padding: 10px;
-        border-radius: 0 4px 4px 0;
-    }
-
-    .divider {
-        border: 0;
-        border-top: 1px solid var(--border-color);
-        margin: 15px 0;
-    }
-
-    .phoneme-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 10px;
-        margin-top: 10px;
-    }
-
-    .phoneme-item {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        background: var(--secondary-color);
-        padding: 5px 8px;
-        border-radius: 4px;
-        font-size: 0.9rem;
-    }
-
-    .phoneme-color {
-        width: 20px;
-        height: 20px;
-        border: none;
-        padding: 0;
-        background: none;
-        cursor: pointer;
-    }
-
-    /* Switch Toggle */
-    .switch {
-        position: relative;
-        display: inline-block;
-        width: 40px;
-        height: 20px;
-    }
-
-    .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-    }
-
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 16px;
-        width: 16px;
-        left: 2px;
-        bottom: 2px;
-        background-color: white;
-        transition: .4s;
-    }
-
-    input:checked+.slider {
-        background-color: var(--primary-color, #2196F3);
-    }
-
-    input:focus+.slider {
-        box-shadow: 0 0 1px #2196F3;
-    }
-
-    input:checked+.slider:before {
-        transform: translateX(20px);
-    }
-
-    .slider.round {
-        border-radius: 20px;
-    }
-
-    .slider.round:before {
-        border-radius: 50%;
-    }
-
-    .option-group {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .btn-outline {
-        background: transparent;
-        border: 1px solid var(--primary-color);
-        color: var(--text-color);
-    }
-
-    .option-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-
-    .hint {
-        font-size: 0.85rem;
-        color: #777;
-        margin-top: 5px;
-    }
-</style>
 {% endblock %}
