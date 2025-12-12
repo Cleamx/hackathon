@@ -1,133 +1,284 @@
 {% extends "base.html" %}
 
+{% block main_class %}{% endblock %}
+
 {% block content %}
 <div class="reader-layout">
-    <div id="tags-container" class="tags-row">
-        <!-- Tags injected here -->
-    </div>
-
-    <div class="toolbar">
-        <div class="dropdown-container">
-            <button class="btn" id="theme-toggle" title="Changer de thème">Theme ▾</button>
-            <div class="dropdown-menu">
-                <div class="dropdown-item">
-                    <span style="font-size: 0.8rem; margin-bottom: 4px; display: block;">Contraste</span>
-                    <input type="range" id="contrast-slider" min="0.5" max="1.5" step="0.1" value="1"
-                        onchange="updateContrast(this.value)" title="Ajuster le contraste">
-                </div>
-            </div>
-        </div>
-        <button class="btn" id="font-toggle" title="Changer de police">Police</button>
-
-        <div class="slider-group">
-            <span style="font-size: 0.8rem">A</span>
-            <input type="range" id="font-size-slider" min="16" max="32" value="20" onchange="updateFontSize(this.value)"
-                title="Taille de la police">
-            <span style="font-size: 1.2rem">A</span>
-        </div>
-
-        <div class="slider-group" style="border-left: 1px solid var(--color-border); padding-left: 10px;">
-            <span style="font-size: 0.8rem">↔</span>
-            <input type="range" id="letter-spacing-slider" min="0" max="3" step="0.5" value="0"
-                onchange="updateLetterSpacing(this.value)" title="Espacement caractères">
-
-            <span style="font-size: 0.8rem; margin-left: 8px;">↕</span>
-            <input type="range" id="line-height-slider" min="1.4" max="2.4" step="0.1" value="1.8"
-                onchange="updateLineHeight(this.value)" title="Interligne">
+    <!-- Toolbar flottante minimaliste -->
+    <div class="reader-toolbar" id="reader-toolbar">
+        <div class="toolbar-group">
+            <button class="tool-btn" id="theme-toggle" title="Thème">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+            <button class="tool-btn" id="font-toggle" title="Police">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                    <line x1="9" y1="20" x2="15" y2="20"></line>
+                    <line x1="12" y1="4" x2="12" y2="20"></line>
+                </svg>
+            </button>
         </div>
 
-        <!-- Contrôles d'alignement -->
-        <div class="slider-group" style="border-left: 1px solid var(--color-border); padding-left: 10px; gap: 4px;">
-            <button class="btn-icon" id="align-left" title="Aligner à gauche" onclick="setTextAlign('left')">
+        <div class="toolbar-divider"></div>
+
+        <!-- Contrôles typographie -->
+        <div class="toolbar-group typography-controls">
+            <button class="tool-btn" id="font-decrease" title="Réduire">A-</button>
+            <span class="font-size-display" id="font-size-display">20</span>
+            <button class="tool-btn" id="font-increase" title="Agrandir">A+</button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Alignement -->
+        <div class="toolbar-group">
+            <button class="tool-btn" id="align-left" title="Gauche" onclick="setTextAlign('left')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="3" y1="6" x2="21" y2="6"></line>
                     <line x1="3" y1="12" x2="15" y2="12"></line>
                     <line x1="3" y1="18" x2="18" y2="18"></line>
                 </svg>
             </button>
-            <button class="btn-icon" id="align-center" title="Centrer" onclick="setTextAlign('center')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="6" y1="12" x2="18" y2="12"></line>
-                    <line x1="4" y1="18" x2="20" y2="18"></line>
-                </svg>
-            </button>
-            <button class="btn-icon active" id="align-justify" title="Justifier" onclick="setTextAlign('justify')">
+            <button class="tool-btn active" id="align-justify" title="Justifier" onclick="setTextAlign('justify')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="3" y1="6" x2="21" y2="6"></line>
                     <line x1="3" y1="12" x2="21" y2="12"></line>
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
-            <button class="btn-icon" id="align-right" title="Aligner à droite" onclick="setTextAlign('right')">
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Audio -->
+        <div class="toolbar-group">
+            <button class="tool-btn" id="tts-play" title="Lecture audio">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            </button>
+            <button class="tool-btn" id="tts-pause" title="Pause" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            </button>
+            <button class="tool-btn" id="tts-stop" title="Stop">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                </svg>
+            </button>
+            <span class="reading-time-badge" id="reading-time"></span>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Actions -->
+        <div class="toolbar-group">
+            <button class="tool-btn" id="ruler-toggle" title="Guide de lecture">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="9" y1="12" x2="21" y2="12"></line>
-                    <line x1="6" y1="18" x2="21" y2="18"></line>
+                    <rect x="3" y="10" width="18" height="4" rx="1"></rect>
+                </svg>
+            </button>
+            <button class="tool-btn" id="summary-toggle" title="Résumé AI">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            </button>
+            <button class="tool-btn" id="braille-export-btn" title="Exporter en Braille">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="6" cy="6" r="2"></circle>
+                    <circle cx="6" cy="12" r="2"></circle>
+                    <circle cx="6" cy="18" r="2"></circle>
+                    <circle cx="12" cy="6" r="2"></circle>
+                    <circle cx="18" cy="12" r="2"></circle>
+                    <circle cx="18" cy="18" r="2"></circle>
+                </svg>
+            </button>
+            <button class="tool-btn" id="fullscreen-btn" title="Plein écran">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                 </svg>
             </button>
         </div>
-
-        <div style="display: flex; flex-direction: column; align-items: center;">
-            <div class="slider-group" style="padding: 4px; gap: 0;">
-                <button class="btn-icon" id="tts-play" title="Lecture">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="tts-pause" title="Pause" style="display:none;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="6" y="4" width="4" height="16"></rect>
-                        <rect x="14" y="4" width="4" height="16"></rect>
-                    </svg>
-                </button>
-                <button class="btn-icon" id="tts-stop" title="Stop">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    </svg>
-                </button>
-            </div>
-            <span id="reading-time"
-                style="font-size: 0.65rem; color: var(--color-text-muted); margin-top: 2px; font-weight: 600;"></span>
-        </div>
-        <button class="btn" id="ruler-toggle" title="Guide de lecture">📏</button>
-        <button class="btn" id="summary-toggle" title="Résumé AI">✨ Résumé</button>
-        <button class="btn" id="braille-export-btn" title="Exporter en Braille (.brf)">⠼⠃⠗⠋</button>
-        <button class="btn" id="fullscreen-btn" title="Mode Zen (Plein Écran)">⛶</button>
     </div>
 
-    <div id="reader-container" style="position: relative;">
+    <!-- Panneau de paramètres avancés (caché par défaut) -->
+    <div class="settings-panel" id="settings-panel" style="display: none;">
+        <div class="settings-content">
+            <div class="setting-row">
+                <label>Contraste</label>
+                <input type="range" id="contrast-slider" min="0.5" max="1.5" step="0.1" value="1">
+            </div>
+            <div class="setting-row">
+                <label>Espacement lettres</label>
+                <input type="range" id="letter-spacing-slider" min="0" max="3" step="0.5" value="0">
+            </div>
+            <div class="setting-row">
+                <label>Interligne</label>
+                <input type="range" id="line-height-slider" min="1.4" max="2.4" step="0.1" value="1.8">
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone de lecture principale -->
+    <div class="reader-main" id="reader-container">
+        <!-- Tags de mots-clés -->
+        <div id="tags-container" class="tags-row"></div>
+
+        <!-- Panneau résumé AI -->
         <div id="summary-panel" class="summary-card" style="display: none;">
-            <h3>Résumé AI</h3>
+            <div class="summary-header">
+                <h3>✨ Résumé AI</h3>
+                <button class="close-btn" id="close-summary">×</button>
+            </div>
             <div id="summary-content" class="summary-body">Chargement...</div>
         </div>
 
-        <div id="page-content" class="page-frame">
+        <!-- Contenu de la page -->
+        <article id="page-content" class="page-content">
             <div class="loading-spinner"></div>
-            Chargement du document...
-        </div>
-        <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
+            <span class="loading-text">Chargement du document...</span>
+        </article>
 
-        <div class="pagination-controls" id="pagination-controls"
-            style="display: none; justify-content: center; gap: 20px; align-items: center; margin-bottom: 40px;">
-            <button class="btn" id="prev-page" disabled>Précédent</button>
-            <span id="page-indicator" style="font-variant-numeric: tabular-nums;">Page 1 / ?</span>
-            <button class="btn btn-primary" id="next-page">Suivant</button>
-        </div>
+        <!-- Guide de lecture -->
+        <div id="reading-ruler" class="reading-ruler" style="display: none;"></div>
     </div>
+
+    <!-- Pagination fixe en bas -->
+    <nav class="pagination-bar" id="pagination-controls" style="display: none;">
+        <button class="page-btn" id="prev-page" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </button>
+        <span id="page-indicator" class="page-indicator">1 / ?</span>
+        <span id="preload-status" class="preload-indicator" style="display: none;" title="Préchargement des pages...">
+            <span class="preload-spinner"></span> 0/0
+        </span>
+        <button class="page-btn" id="next-page">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </button>
+    </nav>
 </div>
 
 <script>
     const DOC_ID = "{{ document.id }}";
     const INITIAL_STATUS = "{{ document.status }}";
+    const CACHE_KEY = `readzen_pages_${DOC_ID}`;
+    const CACHE_EXPIRY_KEY = `readzen_pages_expiry_${DOC_ID}`;
+    const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures
 
     let pages = [];          // Contenu des pages (null = pas encore chargé)
     let pageCount = 0;       // Nombre total de pages
     let currentPage = 0;
     let loadingPage = null;  // Page en cours de chargement
+    let currentFontSize = 20;
+    let isPreloading = false; // Flag pour le préchargement en cascade
+
+    // ============================================
+    // CACHE MANAGEMENT - Persistance localStorage
+    // ============================================
+    
+    function savePageToCache(pageNumber, content) {
+        try {
+            const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+            cached[pageNumber] = content;
+            cached._pageCount = pageCount;
+            localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+            localStorage.setItem(CACHE_EXPIRY_KEY, Date.now() + CACHE_DURATION);
+            console.log(`Page ${pageNumber} saved to localStorage cache`);
+        } catch (e) {
+            console.warn('Failed to save to localStorage:', e);
+            // Si localStorage est plein, on nettoie le cache
+            if (e.name === 'QuotaExceededError') {
+                clearPageCache();
+            }
+        }
+    }
+    
+    function loadPagesFromCache() {
+        try {
+            const expiry = localStorage.getItem(CACHE_EXPIRY_KEY);
+            if (expiry && Date.now() > parseInt(expiry)) {
+                console.log('Cache expired, clearing...');
+                clearPageCache();
+                return null;
+            }
+            
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const data = JSON.parse(cached);
+                console.log('Loaded pages from localStorage cache:', Object.keys(data).filter(k => k !== '_pageCount').length, 'pages');
+                return data;
+            }
+        } catch (e) {
+            console.warn('Failed to load from localStorage:', e);
+        }
+        return null;
+    }
+    
+    function clearPageCache() {
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(CACHE_EXPIRY_KEY);
+        console.log('Page cache cleared');
+    }
+
+    // ============================================
+    // CASCADE PRELOADING - Chargement en cascade
+    // ============================================
+    
+    async function startCascadePreload() {
+        if (isPreloading) {
+            console.log('Cascade preload already in progress');
+            return;
+        }
+        
+        isPreloading = true;
+        console.log('Starting cascade preload for all pages...');
+        
+        // Charger toutes les pages non chargées, une par une
+        for (let i = 0; i < pageCount; i++) {
+            if (!pages[i]) {
+                console.log(`Cascade: loading page ${i}...`);
+                await loadPage(i);
+                
+                // Petit délai pour ne pas surcharger le serveur
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+        
+        isPreloading = false;
+        console.log('Cascade preload complete! All pages loaded.');
+        updatePreloadStatus();
+    }
+    
+    function updatePreloadStatus() {
+        const loadedCount = pages.filter(p => p !== null && p !== undefined).length;
+        const indicator = document.getElementById('preload-status');
+        
+        if (loadedCount === pageCount) {
+            if (indicator) indicator.style.display = 'none';
+            console.log(`All ${pageCount} pages are now cached locally`);
+        } else if (indicator) {
+            indicator.style.display = 'inline-flex';
+            indicator.innerHTML = `<span class="preload-spinner"></span> ${loadedCount}/${pageCount}`;
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         accessibility.init();
@@ -146,6 +297,43 @@
         document.getElementById('prev-page').addEventListener('click', () => changePage(-1));
         document.getElementById('next-page').addEventListener('click', () => changePage(1));
 
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') changePage(-1);
+            if (e.key === 'ArrowRight') changePage(1);
+        });
+
+        // Font size controls
+        const fontDecrease = document.getElementById('font-decrease');
+        const fontIncrease = document.getElementById('font-increase');
+        const fontSizeDisplay = document.getElementById('font-size-display');
+
+        if (fontDecrease && fontIncrease) {
+            fontDecrease.addEventListener('click', () => {
+                if (currentFontSize > 14) {
+                    currentFontSize -= 2;
+                    updateFontSize(currentFontSize);
+                    fontSizeDisplay.textContent = currentFontSize;
+                }
+            });
+            fontIncrease.addEventListener('click', () => {
+                if (currentFontSize < 32) {
+                    currentFontSize += 2;
+                    updateFontSize(currentFontSize);
+                    fontSizeDisplay.textContent = currentFontSize;
+                }
+            });
+        }
+
+        // Settings sliders
+        const contrastSlider = document.getElementById('contrast-slider');
+        const letterSpacingSlider = document.getElementById('letter-spacing-slider');
+        const lineHeightSlider = document.getElementById('line-height-slider');
+
+        if (contrastSlider) contrastSlider.addEventListener('input', (e) => updateContrast(e.target.value));
+        if (letterSpacingSlider) letterSpacingSlider.addEventListener('input', (e) => updateLetterSpacing(e.target.value));
+        if (lineHeightSlider) lineHeightSlider.addEventListener('input', (e) => updateLineHeight(e.target.value));
+
         // TTS Advanced Logic
         const ttsPlay = document.getElementById('tts-play');
         const ttsPause = document.getElementById('tts-pause');
@@ -154,16 +342,17 @@
         let utterance = null;
 
         function updateTTSUI(state) {
-            // state: 'idle', 'playing', 'paused'
             if (state === 'playing') {
                 ttsPlay.style.display = 'none';
-                ttsPause.style.display = 'inline-flex';
+                ttsPause.style.display = 'flex';
+                ttsPlay.closest('.toolbar-group')?.classList.add('playing');
             } else if (state === 'paused') {
-                ttsPlay.style.display = 'inline-flex';
+                ttsPlay.style.display = 'flex';
                 ttsPause.style.display = 'none';
-            } else { // idle
-                ttsPlay.style.display = 'inline-flex';
+            } else {
+                ttsPlay.style.display = 'flex';
                 ttsPause.style.display = 'none';
+                ttsPlay.closest('.toolbar-group')?.classList.remove('playing');
             }
         }
 
@@ -181,61 +370,41 @@
                     synth.cancel();
                 }
 
-                // --- Enhanced TTS with Visual Guide ---
-                // 1. Get all word spans
                 const wordSpans = Array.from(document.querySelectorAll('.read-word'));
-
-                // 2. Construct text and map ranges
                 let ttsText = "";
                 const wordMap = [];
 
                 wordSpans.forEach(span => {
-                    const word = span.innerText; // Use innerText to get clean text
-                    if (!word.trim()) return; // Skip empty
+                    const word = span.innerText;
+                    if (!word.trim()) return;
 
                     const start = ttsText.length;
-                    ttsText += word + " "; // Add space
-                    const end = ttsText.length - 1; // Exclude space
+                    ttsText += word + " ";
+                    const end = ttsText.length - 1;
 
-                    wordMap.push({
-                        start: start,
-                        end: end,
-                        element: span
-                    });
+                    wordMap.push({ start, end, element: span });
                 });
 
                 if (!ttsText) {
                     const text = document.getElementById('page-content').innerText;
-                    ttsText = text; // Fallback if no spans found
+                    ttsText = text;
                 }
 
                 utterance = new SpeechSynthesisUtterance(ttsText);
 
-                // 3. Highlight Logic
                 utterance.onboundary = (event) => {
                     if (event.name === 'word') {
                         const charIndex = event.charIndex;
-
-                        // Find the word that contains this charIndex
-                        // Since 'word' event might trigger on punctuation, we search close matches
                         const match = wordMap.find(w => charIndex >= w.start && charIndex < w.end + 2);
-                        // +2 tolerance for spaces/punctuation
 
-                        // Clear previous active
                         document.querySelectorAll('.word-active').forEach(el => el.classList.remove('word-active'));
 
                         if (match) {
                             match.element.classList.add('word-active');
-
-                            // Auto-scroll to keep meaningful visual context
-                            // Only scroll if element is confusingly off-screen
                             const rect = match.element.getBoundingClientRect();
                             const wHeight = window.innerHeight;
                             if (rect.top < 80 || rect.bottom > wHeight - 80) {
-                                match.element.scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'center'
-                                });
+                                match.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             }
                         }
                     }
@@ -265,31 +434,24 @@
                 document.querySelectorAll('.word-active').forEach(el => el.classList.remove('word-active'));
             });
 
-            // Safety: cancel on page unload
             window.addEventListener('beforeunload', () => {
                 window.speechSynthesis.cancel();
             });
         }
 
-        // Scroll Aware Toolbar
+        // Toolbar visibility on scroll
         let lastScrollY = window.scrollY;
-        const toolbar = document.querySelector('.toolbar');
+        const toolbar = document.getElementById('reader-toolbar');
 
         window.addEventListener('scroll', () => {
             if (!toolbar) return;
-
             const currentScrollY = window.scrollY;
 
-            // Should usually hide when going down, show when going up.
-            // But we might want to keep it shown at the very top.
-            if (currentScrollY > lastScrollY && currentScrollY > 100) {
-                // Scrolling DOWN
-                toolbar.classList.add('hidden-scroll');
+            if (currentScrollY > lastScrollY && currentScrollY > 150) {
+                toolbar.classList.add('hidden');
             } else {
-                // Scrolling UP or at top
-                toolbar.classList.remove('hidden-scroll');
+                toolbar.classList.remove('hidden');
             }
-
             lastScrollY = currentScrollY;
         }, { passive: true });
 
@@ -297,50 +459,23 @@
         const fsBtn = document.getElementById('fullscreen-btn');
         if (fsBtn) {
             fsBtn.addEventListener('click', () => {
-                const container = document.getElementById('reader-container');
+                const readerLayout = document.querySelector('.reader-layout');
                 if (!document.fullscreenElement) {
-                    container.requestFullscreen().catch(e => {
-                        console.error(`Error attempting to enable fullscreen: ${e.message}`);
+                    readerLayout.requestFullscreen().then(() => {
+                        fsBtn.classList.add('active');
+                    }).catch(e => {
+                        console.error(`Fullscreen error: ${e.message}`);
                     });
                 } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
+                    document.exitFullscreen().then(() => {
+                        fsBtn.classList.remove('active');
+                    });
                 }
             });
-        }
 
-        // Summary Toggle
-        const summaryToggle = document.getElementById('summary-toggle');
-        const summaryPanel = document.getElementById('summary-panel');
-        if (summaryToggle && summaryPanel) {
-            summaryToggle.addEventListener('click', async () => {
-                if (summaryPanel.style.display === 'none') {
-                    summaryPanel.style.display = 'block';
-                    const body = document.getElementById('summary-content');
-                    body.innerText = "Chargement..."; // Reset content on show
-
-                    try {
-                        const res = await fetch(`/api/documents/${DOC_ID}/summary`);
-                        const data = await res.json();
-                        const summaryText = data.summary;
-
-                        // Render content
-                        if (summaryText) {
-                            if (typeof marked !== 'undefined') {
-                                body.innerHTML = marked.parse(summaryText);
-                            } else {
-                                body.innerText = summaryText;
-                            }
-                        } else {
-                            body.innerText = "Résumé non disponible (Clé API manquante ou erreur).";
-                        }
-                    } catch (e) {
-                        console.error("Error fetching summary:", e);
-                        body.innerText = "Erreur lors du chargement du résumé.";
-                    }
-                } else {
-                    summaryPanel.style.display = 'none';
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    fsBtn.classList.remove('active');
                 }
             });
         }
@@ -356,18 +491,99 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `document_braille.brf`;
+                a.download = `document_page${currentPage + 1}_braille.brf`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             });
         }
+
+        // Summary Toggle
+        const summaryToggle = document.getElementById('summary-toggle');
+        const summaryPanel = document.getElementById('summary-panel');
+        const closeSummary = document.getElementById('close-summary');
+        
+        if (summaryToggle && summaryPanel) {
+            summaryToggle.addEventListener('click', async () => {
+                if (summaryPanel.style.display === 'none') {
+                    summaryPanel.style.display = 'block';
+                    summaryToggle.classList.add('active');
+                    const body = document.getElementById('summary-content');
+                    body.innerText = "Chargement...";
+
+                    try {
+                        const res = await fetch(`/api/documents/${DOC_ID}/summary`);
+                        const data = await res.json();
+                        const summaryText = data.summary;
+
+                        if (summaryText) {
+                            if (typeof marked !== 'undefined') {
+                                body.innerHTML = marked.parse(summaryText);
+                            } else {
+                                body.innerText = summaryText;
+                            }
+                        } else {
+                            body.innerText = "Résumé non disponible.";
+                        }
+                    } catch (e) {
+                        console.error("Error fetching summary:", e);
+                        body.innerText = "Erreur lors du chargement du résumé.";
+                    }
+                } else {
+                    summaryPanel.style.display = 'none';
+                    summaryToggle.classList.remove('active');
+                }
+            });
+
+            if (closeSummary) {
+                closeSummary.addEventListener('click', () => {
+                    summaryPanel.style.display = 'none';
+                    summaryToggle.classList.remove('active');
+                });
+            }
+        }
     });
 
     async function loadPages() {
         try {
             console.log("Loading pages for document", DOC_ID);
+            
+            // 1. Vérifier le cache localStorage d'abord
+            const cachedData = loadPagesFromCache();
+            
+            if (cachedData && cachedData._pageCount) {
+                pageCount = cachedData._pageCount;
+                pages = new Array(pageCount).fill(null);
+                
+                // Restaurer les pages depuis le cache
+                let cachedCount = 0;
+                for (let i = 0; i < pageCount; i++) {
+                    if (cachedData[i]) {
+                        pages[i] = cachedData[i];
+                        cachedCount++;
+                    }
+                }
+                
+                console.log(`Restored ${cachedCount}/${pageCount} pages from cache`);
+                
+                // Charger la progression et afficher
+                loadProgress();
+                await renderPage();
+                
+                const controls = document.getElementById('pagination-controls');
+                if (controls) controls.style.display = 'flex';
+                
+                // Continuer le préchargement des pages manquantes en cascade
+                if (cachedCount < pageCount) {
+                    startCascadePreload();
+                } else {
+                    updatePreloadStatus();
+                }
+                return;
+            }
+            
+            // 2. Sinon, charger depuis l'API
             const res = await fetch(`/api/documents/${DOC_ID}/text`);
             const data = await res.json();
             
@@ -377,9 +593,17 @@
             if (data.pages && data.pages.length > 0) {
                 pages = data.pages;
                 pageCount = data.page_count || data.pages.length;
+                
+                // Sauvegarder toutes les pages reçues dans le cache
+                for (let i = 0; i < pages.length; i++) {
+                    if (pages[i]) {
+                        savePageToCache(i, pages[i]);
+                    }
+                }
             } else if (data.text) {
                 pages = [data.text];
                 pageCount = 1;
+                savePageToCache(0, data.text);
             } else {
                 pages = ["No text content found."];
                 pageCount = 1;
@@ -393,14 +617,13 @@
 
             await renderPage();
             
-            // Précharger la page suivante si elle existe
-            if (pageCount > 1 && currentPage < pageCount - 1) {
-                console.log("Preloading next page...");
-                preloadPage(currentPage + 1);
-            }
-            
             const controls = document.getElementById('pagination-controls');
             if (controls) controls.style.display = 'flex';
+            
+            // Démarrer le préchargement en cascade pour toutes les pages
+            if (pageCount > 1) {
+                startCascadePreload();
+            }
         } catch (e) {
             console.error("Error in loadPages:", e);
             const contentDiv = document.getElementById('page-content');
@@ -450,7 +673,14 @@
             
             const data = await res.json();
             pages[pageNumber] = data.content;
-            console.log(`Page ${pageNumber} loaded successfully (cached: ${data.cached}, ${data.content?.length || 0} chars)`);
+            
+            // Sauvegarder dans le cache localStorage
+            savePageToCache(pageNumber, data.content);
+            
+            console.log(`Page ${pageNumber} loaded successfully (${data.content?.length || 0} chars)`);
+            
+            // Mettre à jour l'indicateur de préchargement
+            updatePreloadStatus();
             
             return data.content;
         } catch (e) {
@@ -464,6 +694,7 @@
     function preloadPage(pageNumber) {
         /**
          * Précharge une page en arrière-plan sans bloquer.
+         * Note: Utilisé principalement pour un chargement prioritaire
          */
         console.log(`preloadPage called for page ${pageNumber}`);
         if (pageNumber < 0 || pageNumber >= pageCount) {
@@ -532,6 +763,12 @@
         // Scroll to top
         window.scrollTo(0, 0);
         
+        // En mode plein écran, scroller le conteneur
+        const readerLayout = document.querySelector('.reader-layout');
+        if (document.fullscreenElement && readerLayout) {
+            readerLayout.scrollTop = 0;
+        }
+        
         // Re-apply styles that might be reset by innerHTML replacement
         const savedLine = localStorage.getItem('readzen_line_height');
         if (savedLine) updateLineHeight(savedLine);
@@ -539,11 +776,6 @@
         if (savedSpacing) updateLetterSpacing(savedSpacing);
         const savedAlign = localStorage.getItem('readzen_text_align');
         if (savedAlign) setTextAlign(savedAlign);
-        
-        // Précharger la page suivante
-        if (currentPage < pageCount - 1) {
-            preloadPage(currentPage + 1);
-        }
     }
 
     async function changePage(delta) {

@@ -11,6 +11,8 @@
         rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/accessibility.css">
+    <link rel="stylesheet" href="/static/css/reader.css">
+    {% block extra_css %}{% endblock %}
 
 </head>
 
@@ -29,7 +31,7 @@
         </div>
     </header>
 
-    <main class="container">
+    <main class="{% block main_class %}container{% endblock %}">
         {% block content %}{% endblock %}
     </main>
 

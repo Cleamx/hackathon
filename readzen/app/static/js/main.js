@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ruler = document.getElementById('reading-ruler');
     const toggleBtn = document.getElementById('ruler-toggle');
     const contentArea = document.getElementById('page-content');
+    const readerMain = document.querySelector('.reader-main');
     let rulerEnabled = false;
 
     if (toggleBtn && ruler && contentArea) {
@@ -67,71 +68,54 @@ document.addEventListener('DOMContentLoaded', () => {
             rulerEnabled = !rulerEnabled;
             toggleBtn.classList.toggle('active', rulerEnabled);
 
-            // If toggling on while mouse is already over content, show it
-            if (rulerEnabled && contentArea.matches(':hover')) {
+            if (rulerEnabled) {
                 ruler.style.display = 'block';
+                ruler.style.opacity = '0';
             } else {
                 ruler.style.display = 'none';
             }
         });
 
-        // Show when entering content
-        contentArea.addEventListener('mouseenter', () => {
-            if (rulerEnabled) ruler.style.display = 'block';
-        });
-
-        // Hide when leaving content
-        contentArea.addEventListener('mouseleave', () => {
-            if (rulerEnabled) ruler.style.display = 'none';
-        });
-
-        // Follow mouse inside content
+        // Follow mouse inside content area
         contentArea.addEventListener('mousemove', (e) => {
             if (rulerEnabled) {
-                // Ensure we use the page-content as reference
-                const rect = contentArea.getBoundingClientRect();
-
-                // Calculate position relative to the content area
-                const relativeY = e.clientY - rect.top;
-
-                // Clamp within bounds (0 to height)
-                const clampedY = Math.max(0, Math.min(relativeY, rect.height));
-
-                // Position relative to the container if needed because of structure
-                // But actually, ruler is child of reading-container which contains page-content?
-                // Wait, in reader.html:
-                // <div id="reader-container" style="position: relative;">
-                //     <div id="page-content" class="page-frame">...</div>
-                //     <div id="reading-ruler" ...></div>
-                // </div>
-                // So ruler is absolute in reader-container.
-                // page-content moves inside reader-container?
-                // Actually they are siblings. page-content usually has margin: 0 auto.
-                // We want the ruler to be ON TOP of page-content visually.
-                // It's probably easier if we check boundaries.
-
-                // Let's set the ruler width/left to match page-content too ?
-                // The user said "ne doit pas depasser la feuille" (must not exceed the sheet).
-
-                ruler.style.width = `${rect.width}px`;
-                ruler.style.left = `${contentArea.offsetLeft}px`;
-
-                // Logic: 
-                // e.clientY is relative to viewport.
-                // We want to place ruler at that Y, but relative to the OffsetParent (reader-container).
-
-                const containerRect = document.getElementById('reader-container').getBoundingClientRect();
-                const offsetY = e.clientY - containerRect.top;
-
-                // Clamp to page-content vertical bounds relative to container
-                const minTop = contentArea.offsetTop;
-                const maxTop = contentArea.offsetTop + contentArea.offsetHeight;
-
-                let finalTop = offsetY;
-                if (finalTop < minTop) finalTop = minTop;
-                if (finalTop > maxTop) finalTop = maxTop;
-
+                ruler.style.opacity = '1';
+                
+                const contentRect = contentArea.getBoundingClientRect();
+                const readerRect = readerMain.getBoundingClientRect();
+                
+                // Position relative to the reader-main container
+                const relativeY = e.clientY - readerRect.top;
+                
+                // Clamp within page-content bounds
+                const contentTop = contentArea.offsetTop;
+                const contentBottom = contentTop + contentArea.offsetHeight;
+                
+                let finalTop = relativeY - 18; // Center the ruler on cursor (36px height / 2)
+                
+                // Keep ruler within content bounds
+                if (finalTop < contentTop) finalTop = contentTop;
+                if (finalTop + 36 > contentBottom) finalTop = contentBottom - 36;
+                
                 ruler.style.top = `${finalTop}px`;
+                
+                // Match the width and position of page-content
+                ruler.style.width = `${contentRect.width}px`;
+                ruler.style.left = `${contentArea.offsetLeft}px`;
+            }
+        });
+
+        // Hide ruler when leaving content
+        contentArea.addEventListener('mouseleave', () => {
+            if (rulerEnabled) {
+                ruler.style.opacity = '0';
+            }
+        });
+
+        // Show ruler when entering content
+        contentArea.addEventListener('mouseenter', () => {
+            if (rulerEnabled) {
+                ruler.style.opacity = '1';
             }
         });
     }

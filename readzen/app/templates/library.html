@@ -1,57 +1,162 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="header-content" style="margin-bottom: 30px; margin-top: 30px; flex-wrap: wrap; gap: 10px;">
-    <h2>Ma Bibliothèque</h2>
-    <div class="header-actions" style="display: flex; gap: 10px;">
-        <button id="btn-select-mode" class="btn" onclick="toggleSelectionMode()">Sélectionner</button>
-        <button id="btn-delete-all" class="btn btn-danger" style="display: none;" onclick="deleteAllDocuments()">Tout
-            supprimer</button>
-        <button id="btn-delete-selected" class="btn btn-danger" style="display: none;"
-            onclick="deleteSelectedDocuments()">Supprimer la sélection (<span id="selected-count">0</span>)</button>
-        <a href="/" class="btn btn-primary">
-            <span>+</span> Ajouter
-        </a>
-    </div>
-</div>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/library.css">
+{% endblock %}
 
-<div class="library-grid" id="doc-grid">
-    <p style="color: var(--color-text-muted);">Chargement de vos lectures...</p>
+{% block content %}
+<div class="library-container">
+    <!-- Header -->
+    <div class="library-header">
+        <h1 class="library-title">
+            <svg class="library-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            Ma Bibliothèque
+        </h1>
+        <div class="library-actions">
+            <button id="btn-select-mode" class="lib-btn lib-btn-ghost" onclick="toggleSelectionMode()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                <span>Sélectionner</span>
+            </button>
+            <button id="btn-delete-all" class="lib-btn lib-btn-danger" style="display: none;" onclick="deleteAllDocuments()">
+                Tout supprimer
+            </button>
+            <button id="btn-delete-selected" class="lib-btn lib-btn-danger" style="display: none;" onclick="deleteSelectedDocuments()">
+                Supprimer (<span id="selected-count">0</span>)
+            </button>
+            <a href="/" class="lib-btn lib-btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Ajouter
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="library-stats" id="library-stats" style="display: none;">
+        <div class="stat-item">
+            <span class="stat-value" id="stat-total">0</span>
+            <span class="stat-label">documents</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-completed">0</span>
+            <span class="stat-label">prêts à lire</span>
+        </div>
+    </div>
+
+    <!-- Document Grid -->
+    <div class="library-grid" id="doc-grid">
+        <div class="library-empty">
+            <svg class="library-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>Chargement de vos documents...</p>
+        </div>
+    </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', async () => {
         const grid = document.getElementById('doc-grid');
+        const statsBar = document.getElementById('library-stats');
+        
         try {
             const res = await fetch('/api/documents/');
             const docs = await res.json();
 
             if (docs.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--color-text-muted);">Aucun document pour le moment. Commencez par en ajouter un !</div>';
+                grid.innerHTML = `
+                    <div class="library-empty">
+                        <svg class="library-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="12" y1="18" x2="12" y2="12"></line>
+                            <line x1="9" y1="15" x2="15" y2="15"></line>
+                        </svg>
+                        <h3>Aucun document</h3>
+                        <p>Commencez par ajouter votre premier document PDF</p>
+                        <a href="/" class="lib-btn lib-btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Ajouter un document
+                        </a>
+                    </div>`;
                 return;
             }
 
-            grid.innerHTML = docs.map(doc => `
-            <div class="document-card" onclick="handleCardClick(event, ${doc.id})">
-                <div class="selection-overlay">
-                    <input type="checkbox" class="doc-checkbox" value="${doc.id}" onchange="updateSelectionCount()">
-                </div>
-                <div>
-                    <div class="document-title" title="${doc.filename}">${doc.filename}</div>
-                    <div class="document-meta">
-                        Ajouté le ${new Date(doc.upload_date).toLocaleDateString()}
-                        <br>
-                        <span style="font-size: 0.8em; opacity: 0.8;">${doc.status}</span>
+            // Show stats
+            statsBar.style.display = 'flex';
+            document.getElementById('stat-total').textContent = docs.length;
+            document.getElementById('stat-completed').textContent = docs.filter(d => d.status === 'completed').length;
+
+            grid.innerHTML = docs.map(doc => {
+                const statusClass = doc.status === 'completed' ? 'completed' : 
+                                   doc.status === 'failed' ? 'failed' : 'processing';
+                const statusText = doc.status === 'completed' ? 'Prêt' : 
+                                  doc.status === 'failed' ? 'Erreur' : 'En cours...';
+                
+                return `
+                <div class="doc-card" onclick="handleCardClick(event, ${doc.id})">
+                    <div class="doc-checkbox-wrapper">
+                        <input type="checkbox" class="doc-checkbox" value="${doc.id}" onchange="updateSelectionCount()">
                     </div>
-                </div>
-                <div class="card-actions">
-                    <a href="/reader/${doc.id}" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.9em;">Lire</a>
-                    <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.9em;" onclick="deleteDocument(event, ${doc.id})">Supprimer</button>
-                </div>
-            </div>
-        `).join('');
+                    <div class="doc-card-header">
+                        <div class="doc-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="doc-info">
+                            <h3 class="doc-title" title="${doc.filename}">${doc.filename}</h3>
+                            <div class="doc-meta">
+                                <span>${new Date(doc.upload_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                <span class="doc-status ${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="doc-card-actions">
+                        <a href="/reader/${doc.id}" class="doc-btn doc-btn-read">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg>
+                            Lire
+                        </a>
+                        <button class="doc-btn doc-btn-delete" onclick="deleteDocument(event, ${doc.id})" title="Supprimer">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
         } catch (e) {
-            grid.innerHTML = '<p style="color: var(--color-danger);">Erreur lors du chargement des documents.</p>';
+            grid.innerHTML = `
+                <div class="library-empty">
+                    <svg class="library-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    <h3>Erreur de chargement</h3>
+                    <p>Impossible de charger vos documents</p>
+                </div>`;
             console.error(e);
         }
     });
@@ -68,26 +173,34 @@
         const deleteAllBtn = document.getElementById('btn-delete-all');
 
         if (selectionMode) {
-            btn.innerText = 'Annuler';
-            btn.classList.add('btn-secondary'); // Visual indicator
-            deleteAllBtn.style.display = 'inline-block';
-            // Reset selection when entering? Maybe no.
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Annuler</span>`;
+            btn.classList.add('active');
+            deleteAllBtn.style.display = 'inline-flex';
         } else {
-            btn.innerText = 'Sélectionner';
-            btn.classList.remove('btn-secondary');
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                <span>Sélectionner</span>`;
+            btn.classList.remove('active');
             deleteAllBtn.style.display = 'none';
+            deleteSelectedBtn.style.display = 'none';
             // Clear selection
             document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = false);
-            document.querySelectorAll('.document-card').forEach(card => card.classList.remove('selected'));
-            updateSelectionCount();
+            document.querySelectorAll('.doc-card').forEach(card => card.classList.remove('selected'));
         }
     }
 
     function handleCardClick(event, id) {
         if (!selectionMode) return;
 
-        // Prevent triggering if clicked on button inside
-        if (event.target.closest('.card-actions') || event.target.closest('a')) return;
+        if (event.target.closest('.doc-card-actions') || event.target.closest('a')) return;
 
         const checkbox = event.currentTarget.querySelector('.doc-checkbox');
         const card = event.currentTarget;
@@ -96,12 +209,7 @@
             checkbox.checked = !checkbox.checked;
         }
 
-        if (checkbox.checked) {
-            card.classList.add('selected');
-        } else {
-            card.classList.remove('selected');
-        }
-
+        card.classList.toggle('selected', checkbox.checked);
         updateSelectionCount();
     }
 
@@ -110,16 +218,12 @@
         document.getElementById('selected-count').innerText = count;
 
         const deleteSelectedBtn = document.getElementById('btn-delete-selected');
-        if (count > 0) {
-            deleteSelectedBtn.style.display = 'inline-flex';
-        } else {
-            deleteSelectedBtn.style.display = 'none';
-        }
+        deleteSelectedBtn.style.display = count > 0 ? 'inline-flex' : 'none';
     }
 
     async function deleteDocument(event, id) {
         if (event) event.stopPropagation();
-        if (!confirm('Etes-vous sûr de vouloir supprimer ce document ?')) return;
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return;
 
         try {
             await apiDelete(id);
@@ -133,18 +237,17 @@
         const checked = document.querySelectorAll('.doc-checkbox:checked');
         if (checked.length === 0) return;
 
-        if (!confirm(`Supprimer ${checked.length} documents ? Cette action est irréversible.`)) return;
+        if (!confirm(`Supprimer ${checked.length} document(s) ? Cette action est irréversible.`)) return;
 
         const ids = Array.from(checked).map(cb => cb.value);
 
-        // Parallel Delete
         try {
             await Promise.all(ids.map(id => apiDelete(id)));
             window.location.reload();
         } catch (e) {
             console.error(e);
             alert('Certaines suppressions ont échoué.');
-            window.location.reload(); // Reload to show what remains
+            window.location.reload();
         }
     }
 
@@ -169,27 +272,9 @@
         }
     }
 
-    // Helper for API call
     async function apiDelete(id) {
         const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Delete failed');
     }
 </script>
-
-<style>
-    .library-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .btn-danger {
-        background-color: #d32f2f;
-    }
-
-    .btn-danger:hover {
-        background-color: #b71c1c;
-    }
-</style>
 {% endblock %}
