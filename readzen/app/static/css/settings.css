@@ -14,6 +14,34 @@
     margin-bottom: 40px;
 }
 
+/* Back Button */
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    margin-bottom: 20px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 24px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.back-button:hover {
+    background: var(--color-bg);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.back-button svg {
+    width: 18px;
+    height: 18px;
+}
+
 .settings-title {
     font-size: 1.75rem;
     font-weight: 600;
@@ -203,11 +231,11 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider {
     background-color: var(--color-primary);
 }
 
-.toggle-switch input:checked + .toggle-slider:before {
+.toggle-switch input:checked+.toggle-slider:before {
     transform: translateX(20px);
 }
 
@@ -305,11 +333,11 @@
     .settings-container {
         padding: 24px 16px 60px;
     }
-    
+
     .option-buttons {
         flex-direction: column;
     }
-    
+
     .option-btn {
         flex-direction: row;
         justify-content: flex-start;

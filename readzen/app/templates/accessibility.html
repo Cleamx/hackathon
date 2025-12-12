@@ -6,8 +6,14 @@
 
 {% block content %}
 <div class="settings-container">
-    <!-- Header -->
+    <!-- Header avec bouton retour -->
     <div class="settings-header">
+        <button class="back-button" onclick="history.back()" title="Retour à la page précédente">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Retour
+        </button>
         <h1 class="settings-title">Paramètres d'accessibilité</h1>
         <p class="settings-subtitle">Personnalisez votre expérience de lecture</p>
     </div>
@@ -79,7 +85,7 @@
             </svg>
             Aide à la lecture
         </h2>
-        
+
         <div class="toggle-section">
             <!-- Syllabique -->
             <div class="toggle-row">
@@ -92,18 +98,18 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
-            
+
             <!-- Sub-options syllabes -->
             <div id="syllable-options" class="sub-options">
                 <div class="sub-option-row">
                     <span class="sub-option-label">Alternance de couleurs</span>
-                    <input type="checkbox" class="mini-checkbox" id="syll-alt-toggle" 
-                           onchange="accessibility.setSyllableOption('alternation', this.checked)">
+                    <input type="checkbox" class="mini-checkbox" id="syll-alt-toggle"
+                        onchange="accessibility.setSyllableOption('alternation', this.checked)">
                 </div>
                 <div class="sub-option-row">
                     <span class="sub-option-label">Souligner les syllabes</span>
-                    <input type="checkbox" class="mini-checkbox" id="syll-underline-toggle" 
-                           onchange="accessibility.setSyllableOption('underline', this.checked)">
+                    <input type="checkbox" class="mini-checkbox" id="syll-underline-toggle"
+                        onchange="accessibility.setSyllableOption('underline', this.checked)">
                 </div>
             </div>
 
@@ -114,7 +120,8 @@
                     <div class="toggle-description">Affiche les lettres muettes en gris pour les identifier</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="silent-toggle" onchange="accessibility.toggleSilentLetters(this.checked)">
+                    <input type="checkbox" id="silent-toggle"
+                        onchange="accessibility.toggleSilentLetters(this.checked)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -132,7 +139,7 @@
             </svg>
             Phonèmes
         </h2>
-        
+
         <div class="toggle-section">
             <div class="toggle-row">
                 <div class="toggle-info">
@@ -145,7 +152,7 @@
                 </label>
             </div>
         </div>
-        
+
         <div id="phoneme-list" class="phoneme-grid">
             <!-- Généré par JS -->
         </div>
@@ -161,7 +168,7 @@
             </svg>
             Aide à la compréhension
         </h2>
-        
+
         <div class="toggle-section">
             <div class="toggle-row">
                 <div class="toggle-info">
@@ -169,8 +176,8 @@
                     <div class="toggle-description">Met en évidence les personnages et lieux</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="semantic-proper-toggle" 
-                           onchange="accessibility.toggleSemantic('proper', this.checked)">
+                    <input type="checkbox" id="semantic-proper-toggle"
+                        onchange="accessibility.toggleSemantic('proper', this.checked)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -181,8 +188,8 @@
                     <div class="toggle-description">Surligne les informations temporelles et numériques</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="semantic-date-toggle" 
-                           onchange="accessibility.toggleSemantic('date', this.checked)">
+                    <input type="checkbox" id="semantic-date-toggle"
+                        onchange="accessibility.toggleSemantic('date', this.checked)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -193,8 +200,8 @@
                     <div class="toggle-description">Identifie les mots longs (plus de 8 lettres)</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="semantic-concept-toggle" 
-                           onchange="accessibility.toggleSemantic('concept', this.checked)">
+                    <input type="checkbox" id="semantic-concept-toggle"
+                        onchange="accessibility.toggleSemantic('concept', this.checked)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -208,27 +215,27 @@
         accessibility.applyTheme(theme);
         updateThemeButtons();
     }
-    
+
     // Sélection de la police
     function selectFont(font) {
         accessibility.applyFont(font);
         updateFontButtons();
     }
-    
+
     // Toggle syllabique avec affichage des options
     function toggleSyllabic(checked) {
         accessibility.toggleSyllabic(checked);
         const options = document.getElementById('syllable-options');
         options.classList.toggle('visible', checked);
     }
-    
+
     // Toggle phonèmes avec affichage de la grille
     function togglePhonemes(checked) {
         accessibility.togglePhonemes(checked);
         const grid = document.getElementById('phoneme-list');
         grid.classList.toggle('visible', checked);
     }
-    
+
     // Mise à jour visuelle des boutons de thème
     function updateThemeButtons() {
         const currentTheme = accessibility.preferences.theme;
@@ -236,7 +243,7 @@
             btn.classList.toggle('active', btn.dataset.theme === currentTheme);
         });
     }
-    
+
     // Mise à jour visuelle des boutons de police
     function updateFontButtons() {
         const currentFont = accessibility.preferences.font;
@@ -244,29 +251,29 @@
             btn.classList.toggle('active', btn.dataset.font === currentFont);
         });
     }
-    
+
     // Initialisation
     document.addEventListener('DOMContentLoaded', () => {
         const prefs = accessibility.preferences;
-        
+
         // Thème et police
         updateThemeButtons();
         updateFontButtons();
-        
+
         // Syllabes
         document.getElementById('syllable-toggle').checked = prefs.syllabic;
         document.getElementById('syllable-options').classList.toggle('visible', prefs.syllabic);
         document.getElementById('syll-alt-toggle').checked = prefs.syllAlternation;
         document.getElementById('syll-underline-toggle').checked = prefs.syllUnderline;
-        
+
         // Lettres muettes
         document.getElementById('silent-toggle').checked = prefs.silentLetters;
-        
+
         // Phonèmes
         document.getElementById('phoneme-toggle').checked = prefs.phonemesEnabled;
         document.getElementById('phoneme-list').classList.toggle('visible', prefs.phonemesEnabled);
         accessibility.renderPhonemeList('phoneme-list');
-        
+
         // Sémantique
         document.getElementById('semantic-proper-toggle').checked = prefs.semanticProper;
         document.getElementById('semantic-date-toggle').checked = prefs.semanticDate;
