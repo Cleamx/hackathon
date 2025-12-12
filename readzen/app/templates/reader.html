@@ -151,6 +151,14 @@
                     </path>
                 </svg>
             </button>
+            <button class="tool-btn" id="export-pdf-btn" title="Exporter en PDF" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <polyline points="9 15 12 12 15 15"></polyline>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -334,6 +342,18 @@
 
         // Générer automatiquement le résumé une fois toutes les pages chargées
         generateSummaryIfNeeded();
+
+        // Activer le bouton d'export PDF
+        enablePdfExport();
+    }
+
+    function enablePdfExport() {
+        const exportBtn = document.getElementById('export-pdf-btn');
+        if (exportBtn) {
+            exportBtn.disabled = false;
+            exportBtn.title = 'Exporter en PDF';
+            console.log('PDF export enabled');
+        }
     }
 
     async function generateSummaryIfNeeded() {
@@ -599,6 +619,100 @@
             });
         }
 
+        // Export PDF
+        const exportPdfBtn = document.getElementById('export-pdf-btn');
+        if (exportPdfBtn) {
+            exportPdfBtn.addEventListener('click', async () => {
+                if (exportPdfBtn.disabled) return;
+
+                // Afficher un feedback visuel
+                exportPdfBtn.classList.add('active');
+                const originalTitle = exportPdfBtn.title;
+                exportPdfBtn.title = 'Export en cours...';
+
+                try {
+                    const pageContentEl = document.getElementById('page-content');
+                    const computedStyles = getComputedStyle(pageContentEl);
+
+                    // Capturer toutes les couleurs des éléments AVANT de cloner
+                    const colorMap = new Map();
+                    const originalElements = pageContentEl.querySelectorAll('*');
+                    originalElements.forEach((el, index) => {
+                        const style = getComputedStyle(el);
+                        colorMap.set(index, {
+                            color: style.color,
+                            backgroundColor: style.backgroundColor,
+                            fontWeight: style.fontWeight
+                        });
+                    });
+
+                    // Créer un conteneur temporaire avec fond blanc pour impression
+                    const tempContainer = document.createElement('div');
+                    tempContainer.style.cssText = `
+                        width: 190mm;
+                        padding: 10mm;
+                        background-color: white;
+                        color: black;
+                        font-family: ${computedStyles.fontFamily};
+                        font-size: ${computedStyles.fontSize};
+                        line-height: ${computedStyles.lineHeight};
+                        letter-spacing: ${computedStyles.letterSpacing};
+                        word-spacing: ${computedStyles.wordSpacing};
+                    `;
+
+                    // Cloner le contenu
+                    const contentClone = pageContentEl.cloneNode(true);
+                    contentClone.style.cssText = 'background: white !important;';
+
+                    // Appliquer les couleurs capturées aux éléments clonés (sauf fond)
+                    const clonedElements = contentClone.querySelectorAll('*');
+                    clonedElements.forEach((el, index) => {
+                        // Forcer fond blanc sur tous les éléments
+                        el.style.backgroundColor = 'transparent';
+
+                        const styles = colorMap.get(index);
+                        if (styles) {
+                            // Appliquer la couleur du texte si différente de noir
+                            if (styles.color && styles.color !== 'rgb(0, 0, 0)' && styles.color !== 'rgba(0, 0, 0, 0)') {
+                                el.style.color = styles.color;
+                            }
+                        }
+                    });
+
+                    tempContainer.appendChild(contentClone);
+
+                    // Configuration html2pdf
+                    const opt = {
+                        margin: [10, 10, 10, 10],
+                        filename: `ReadZen_Document_${DOC_ID}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            letterRendering: true
+                        },
+                        jsPDF: {
+                            unit: 'mm',
+                            format: 'a4',
+                            orientation: 'portrait'
+                        },
+                        pagebreak: { mode: 'avoid-all' }
+                    };
+
+                    // Générer le PDF
+                    await html2pdf().set(opt).from(tempContainer).save();
+
+                    console.log('PDF exported successfully');
+                } catch (e) {
+                    console.error('PDF export error:', e);
+                    alert('Erreur lors de l\'export PDF');
+                } finally {
+                    exportPdfBtn.classList.remove('active');
+                    exportPdfBtn.title = originalTitle;
+                }
+            });
+        }
+
         // Braille Export
         const brailleBtn = document.getElementById('braille-export-btn');
         if (brailleBtn) {
@@ -806,6 +920,8 @@
                     startCascadePreload();
                 } else {
                     updatePreloadStatus();
+                    // Toutes les pages sont en cache, activer l'export PDF
+                    enablePdfExport();
                 }
                 return;
             }
@@ -850,6 +966,9 @@
             // Démarrer le préchargement en cascade pour toutes les pages
             if (pageCount > 1) {
                 startCascadePreload();
+            } else {
+                // Document d'une seule page, activer directement l'export PDF
+                enablePdfExport();
             }
         } catch (e) {
             console.error("Error in loadPages:", e);
