@@ -201,13 +201,14 @@
         <!-- Tags de mots-clés -->
         <div id="tags-container" class="tags-row"></div>
 
-        <!-- Panneau résumé AI -->
+        <!-- Panneau résumé AI (déplaçable et redimensionnable) -->
         <div id="summary-panel" class="summary-card" style="display: none;">
-            <div class="summary-header">
+            <div class="summary-header draggable-header" id="summary-drag-handle">
                 <h3>Résumé AI</h3>
                 <button class="close-btn" id="close-summary">×</button>
             </div>
             <div id="summary-content" class="summary-body">Chargement...</div>
+            <div class="summary-resize-handle" id="summary-resize-handle"></div>
         </div>
 
         <!-- Contenu de la page avec redimensionnement -->
@@ -670,6 +671,103 @@
                 closeSummary.addEventListener('click', () => {
                     summaryPanel.style.display = 'none';
                     summaryToggle.classList.remove('active');
+                });
+            }
+
+            // Drag and drop pour le panneau de résumé
+            const dragHandle = document.getElementById('summary-drag-handle');
+            if (dragHandle && summaryPanel) {
+                let isDragging = false;
+                let dragStartX, dragStartY;
+                let panelStartX, panelStartY;
+
+                dragHandle.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('close-btn')) return;
+
+                    isDragging = true;
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+
+                    const rect = summaryPanel.getBoundingClientRect();
+                    panelStartX = rect.left;
+                    panelStartY = rect.top;
+
+                    summaryPanel.style.transition = 'none';
+                    document.body.style.userSelect = 'none';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+
+                    const deltaX = e.clientX - dragStartX;
+                    const deltaY = e.clientY - dragStartY;
+
+                    let newX = panelStartX + deltaX;
+                    let newY = panelStartY + deltaY;
+
+                    // Garder le panneau dans les limites de l'écran
+                    const maxX = window.innerWidth - summaryPanel.offsetWidth - 10;
+                    const maxY = window.innerHeight - summaryPanel.offsetHeight - 10;
+
+                    newX = Math.max(10, Math.min(newX, maxX));
+                    newY = Math.max(10, Math.min(newY, maxY));
+
+                    summaryPanel.style.left = newX + 'px';
+                    summaryPanel.style.top = newY + 'px';
+                    summaryPanel.style.right = 'auto';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        summaryPanel.style.transition = '';
+                        document.body.style.userSelect = '';
+                    }
+                });
+            }
+
+            // Resize du panneau de résumé
+            const resizeHandle = document.getElementById('summary-resize-handle');
+            if (resizeHandle && summaryPanel) {
+                let isResizing = false;
+                let resizeStartX, resizeStartY;
+                let startWidth, startHeight;
+
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    resizeStartX = e.clientX;
+                    resizeStartY = e.clientY;
+                    startWidth = summaryPanel.offsetWidth;
+                    startHeight = summaryPanel.offsetHeight;
+
+                    summaryPanel.style.transition = 'none';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+
+                    const deltaX = e.clientX - resizeStartX;
+                    const deltaY = e.clientY - resizeStartY;
+
+                    let newWidth = startWidth + deltaX;
+                    let newHeight = startHeight + deltaY;
+
+                    // Limites de taille
+                    newWidth = Math.max(280, Math.min(newWidth, 600));
+                    newHeight = Math.max(200, Math.min(newHeight, window.innerHeight - 100));
+
+                    summaryPanel.style.width = newWidth + 'px';
+                    summaryPanel.style.maxHeight = newHeight + 'px';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        summaryPanel.style.transition = '';
+                        document.body.style.userSelect = '';
+                    }
                 });
             }
         }
