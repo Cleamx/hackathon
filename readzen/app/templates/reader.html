@@ -204,7 +204,7 @@
         <!-- Panneau résumé AI -->
         <div id="summary-panel" class="summary-card" style="display: none;">
             <div class="summary-header">
-                <h3>✨ Résumé AI</h3>
+                <h3>Résumé AI</h3>
                 <button class="close-btn" id="close-summary">×</button>
             </div>
             <div id="summary-content" class="summary-body">Chargement...</div>
@@ -331,6 +331,25 @@
         isPreloading = false;
         console.log('Cascade preload complete! All pages loaded.');
         updatePreloadStatus();
+
+        // Générer automatiquement le résumé une fois toutes les pages chargées
+        generateSummaryIfNeeded();
+    }
+
+    async function generateSummaryIfNeeded() {
+        console.log('Checking if summary needs to be generated...');
+        try {
+            const res = await fetch(`/api/documents/${DOC_ID}/summary`);
+            const data = await res.json();
+
+            if (data.summary) {
+                console.log('Summary generated/loaded:', data.cached ? 'from cache' : 'freshly generated');
+                // Stocker le résumé pour affichage ultérieur
+                window.documentSummary = data.summary;
+            }
+        } catch (e) {
+            console.error('Error generating summary:', e);
+        }
     }
 
     function updatePreloadStatus() {
@@ -610,25 +629,36 @@
                     summaryPanel.style.display = 'block';
                     summaryToggle.classList.add('active');
                     const body = document.getElementById('summary-content');
-                    body.innerText = "Chargement...";
 
-                    try {
-                        const res = await fetch(`/api/documents/${DOC_ID}/summary`);
-                        const data = await res.json();
-                        const summaryText = data.summary;
-
-                        if (summaryText) {
-                            if (typeof marked !== 'undefined') {
-                                body.innerHTML = marked.parse(summaryText);
-                            } else {
-                                body.innerText = summaryText;
-                            }
+                    // Utiliser le résumé pré-chargé si disponible
+                    if (window.documentSummary) {
+                        if (typeof marked !== 'undefined') {
+                            body.innerHTML = marked.parse(window.documentSummary);
                         } else {
-                            body.innerText = "Résumé non disponible.";
+                            body.innerText = window.documentSummary;
                         }
-                    } catch (e) {
-                        console.error("Error fetching summary:", e);
-                        body.innerText = "Erreur lors du chargement du résumé.";
+                    } else {
+                        body.innerText = "Génération du résumé en cours...";
+
+                        try {
+                            const res = await fetch(`/api/documents/${DOC_ID}/summary`);
+                            const data = await res.json();
+                            const summaryText = data.summary;
+
+                            if (summaryText) {
+                                window.documentSummary = summaryText;
+                                if (typeof marked !== 'undefined') {
+                                    body.innerHTML = marked.parse(summaryText);
+                                } else {
+                                    body.innerText = summaryText;
+                                }
+                            } else {
+                                body.innerText = "Résumé non disponible.";
+                            }
+                        } catch (e) {
+                            console.error("Error fetching summary:", e);
+                            body.innerText = "Erreur lors du chargement du résumé.";
+                        }
                     }
                 } else {
                     summaryPanel.style.display = 'none';

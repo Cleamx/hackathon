@@ -216,3 +216,59 @@ async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(document)
     await db.commit()
     return None
+
+@router.get("/{document_id}/summary")
+async def get_document_summary(document_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Génère ou récupère le résumé AI du document.
+    Le résumé est généré à partir de tout le texte extrait et sauvegardé.
+    """
+    from app.services.ai.summarizer import get_summarizer
+    
+    result = await db.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one_or_none()
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if document.status != ProcessingStatus.COMPLETED.value:
+        raise HTTPException(status_code=400, detail=f"Document is not ready. Status: {document.status}")
+    
+    # Si le résumé existe déjà, le retourner
+    if document.summary:
+        return {"summary": document.summary, "cached": True}
+    
+    # Sinon, générer le résumé
+    try:
+        # Collecter tout le texte des pages extraites
+        extracted_pages = document.extracted_pages or {}
+        
+        # Combiner le texte de toutes les pages
+        all_text = ""
+        for i in range(document.page_count or 1):
+            page_content = extracted_pages.get(str(i), "")
+            if page_content:
+                # Nettoyer le HTML pour obtenir le texte brut
+                import re
+                text_only = re.sub(r'<[^>]+>', ' ', page_content)
+                text_only = re.sub(r'\s+', ' ', text_only).strip()
+                all_text += text_only + "\n\n"
+        
+        if not all_text.strip():
+            return {"summary": "Aucun texte disponible pour générer un résumé.", "cached": False}
+        
+        # Générer le résumé avec OpenAI
+        summarizer = get_summarizer()
+        loop = asyncio.get_running_loop()
+        summary = await loop.run_in_executor(None, summarizer.summarize_text, all_text)
+        
+        # Sauvegarder le résumé en base
+        document.summary = summary
+        await db.commit()
+        
+        logger.info(f"Summary generated and saved for document {document_id}")
+        return {"summary": summary, "cached": False}
+        
+    except Exception as e:
+        logger.error(f"Error generating summary for document {document_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")
