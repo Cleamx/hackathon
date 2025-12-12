@@ -216,7 +216,6 @@
             <div class="page-content-resizable" id="page-resizable">
                 <div class="resize-handle resize-handle-left" id="resize-left"></div>
                 <article id="page-content" class="page-content">
-                    <div class="loading-spinner"></div>
                     <span class="loading-text">Chargement du document...</span>
                 </article>
                 <!-- Guide de lecture (à l'intérieur pour alignement correct) -->
@@ -954,7 +953,7 @@
 
         // Si la page n'est pas encore chargée, la charger
         if (!pageText) {
-            contentDiv.innerHTML = '<div class="loading-spinner"></div> Chargement de la page...';
+            contentDiv.innerHTML = '<span class="loading-text">Chargement de la page...</span>';
             console.log(`Loading page ${currentPage}...`);
             pageText = await loadPage(currentPage);
 
@@ -1024,10 +1023,9 @@
 
         console.log("Starting OCR tracking for doc " + docId);
 
-        // Afficher un loader élégant
+        // Afficher un loader élégant (sans spinner)
         contentDiv.innerHTML = `
             <div class="ocr-loading">
-                <div class="ocr-spinner"></div>
                 <h3 class="ocr-title">Analyse du document en cours</h3>
                 <p class="ocr-subtitle">Extraction et mise en forme du texte...</p>
                 <div class="ocr-progress">
